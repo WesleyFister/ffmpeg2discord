@@ -2,4 +2,12 @@ Frustrated by manually using ffmpeg to compress videos to get around Discord's 2
 
 Make sure to install the dependencies.
 
-pip install -r requirements.txt
+`pip install -r requirements.txt`
+
+Optionally portable binaries can be built with pyinstaller.
+```
+virtualenv discord
+source discord/bin/activate
+pip install moviepy pyqt5 opencv-python-headless pyinstaller
+./discord/bin/pyinstaller --onefile FFmpeg2Discord\ \(v3\).py
+```
