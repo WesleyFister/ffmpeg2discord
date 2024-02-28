@@ -9,5 +9,5 @@ Optionally portable binaries can be built with pyinstaller.
 virtualenv discord
 source discord/bin/activate
 pip install moviepy pyqt5 opencv-python-headless pyinstaller
-./discord/bin/pyinstaller --onefile FFmpeg2Discord\ \(v3\).py
+./discord/bin/pyinstaller --onefile FFmpeg2Discord.py
 ```
