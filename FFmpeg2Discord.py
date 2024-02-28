@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-import os
-import platform
-import mimetypes
+from os import getenv, path, remove
+from platform import system
+from mimetypes import guess_type
 from moviepy.editor import VideoFileClip
 from PyQt5.QtWidgets import QApplication, QFileDialog
 #TODO Keep original video rotation and get codec information.
@@ -9,12 +9,12 @@ from PyQt5.QtWidgets import QApplication, QFileDialog
 targetFileSize = 200000000
 audioBitrate = 60000
 
-filePaths = os.getenv("NAUTILUS_SCRIPT_SELECTED_FILE_PATHS")
+filePaths = getenv("NAUTILUS_SCRIPT_SELECTED_FILE_PATHS")
 
-if platform.system() == "Windows":
+if system() == "Windows":
 	trash = "NUL"
 	
-elif platform.system() == "Linux":
+elif system() == "Linux":
 	trash = "/dev/null"
 
 if filePaths == None:
@@ -32,16 +32,16 @@ else:
 	filePathList = filePaths.split("\n")
 
 for filePath in filePathList:
-	mime = mimetypes.guess_type(filePath)
+	mime = guess_type(filePath)
 	fileType = mime[0].split("/")
 	
-	fileSize = os.path.getsize(filePath)
+	fileSize = path.getsize(filePath)
 	
 	if fileType[0] == "video":
 	# If statement does not work, just proof of concept.
 	# if fileSize > 25000000 or videoCodec != "h264":
-		dirName, file = os.path.split(filePath)
-		fileName, fileExtension = os.path.splitext(file)
+		dirName, file = path.split(filePath)
+		fileName, fileExtension = path.splitext(file)
 		dirName = dirName + '/'
 		output_file = dirName + fileName + "Discord" + ".mp4"
 		
@@ -61,13 +61,13 @@ for filePath in filePathList:
 		width = clip.size[0]
 		height = clip.size[1]
 		resized_clip = clip.resize(1)
-		if (width > 896 or height > 896) and fileSize > 100000000:
+		if (width > 960 or height > 960) and fileSize > 100000000:
 			print("yes")
 			if width > height:
-				resized_clip = clip.resize(width=896)
+				resized_clip = clip.resize(width=960)
 				
 			else:
-				resized_clip = clip.resize(height=896)
+				resized_clip = clip.resize(height=960)
 		
 		# Write to file using 2 pass encoding and other FFmpeg options.
 		ffmpeg_params = ["-pass", "1", "-r", str(videoFPS), "-strict", "-2", "-c:v", "libx264", "-c:a", "libopus", "-b:v", str(bitrate), "-b:a", str(audioBitrate), "-preset", "veryslow", "-f", "mp4", trash]
@@ -76,5 +76,5 @@ for filePath in filePathList:
 		resized_clip.write_videofile(output_file, ffmpeg_params=ffmpeg_params, verbose=False)
 		
 		# Remove files created by FFmpeg in the first pass.
-		os.remove("ffmpeg2pass-0.log")
-		os.remove("ffmpeg2pass-0.log.mbtree")
+		remove("ffmpeg2pass-0.log")
+		remove("ffmpeg2pass-0.log.mbtree")
