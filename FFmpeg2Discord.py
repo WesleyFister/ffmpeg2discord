@@ -62,7 +62,6 @@ for filePath in filePathList:
 		height = clip.size[1]
 		resized_clip = clip.resize(1)
 		if (width > 720 or height > 720) and fileSize > 100000000:
-			print("yes")
 			if width > height:
 				resized_clip = clip.resize(width=720)
 				
