@@ -61,13 +61,13 @@ for filePath in filePathList:
 		width = clip.size[0]
 		height = clip.size[1]
 		resized_clip = clip.resize(1)
-		if (width > 960 or height > 960) and fileSize > 100000000:
+		if (width > 720 or height > 720) and fileSize > 100000000:
 			print("yes")
 			if width > height:
-				resized_clip = clip.resize(width=960)
+				resized_clip = clip.resize(width=720)
 				
 			else:
-				resized_clip = clip.resize(height=960)
+				resized_clip = clip.resize(height=720)
 		
 		# Write to file using 2 pass encoding and other FFmpeg options.
 		ffmpeg_params = ["-pass", "1", "-r", str(videoFPS), "-strict", "-2", "-c:v", "libx264", "-c:a", "libopus", "-b:v", str(bitrate), "-b:a", str(audioBitrate), "-preset", "veryslow", "-f", "mp4", trash]
