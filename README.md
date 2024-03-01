@@ -11,3 +11,6 @@ source discord/bin/activate
 pip install moviepy pyqt5 opencv-python-headless pyinstaller
 ./discord/bin/pyinstaller --onefile FFmpeg2Discord.py
 ```
+
+### Known Issues
+Does not preserve portrait videos and attempting to will distort them. Bug in moviepy? 
