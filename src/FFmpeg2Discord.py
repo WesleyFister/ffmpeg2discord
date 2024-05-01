@@ -1,6 +1,5 @@
 from ffmpeg_progress_yield import FfmpegProgress
 from PyQt5 import QtCore, QtGui, QtWidgets
-from moviepy.editor import VideoFileClip
 from ui import Ui_MainWindow
 from platform import system
 import subprocess
@@ -88,31 +87,47 @@ class ffmpeg2discord(Ui_MainWindow):
 				print(self.startTime)
 				
 				# Determine bitrate based on length of video.
-				videoLength = VideoFileClip(filePath).duration
+				command = ["./tools/ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath]
+				output = subprocess.check_output(command)
+				videoLength = float(output)
 				if self.startTime != "" and self.endTime == "":
 					videoLength = videoLength - self.convertTimeToSeconds(self.startTime)
-					ffmpegCommand.extend(["-ss", self.startTime])
+					ffmpegCommand.insert(1, "-ss")
+					ffmpegCommand.insert(2, self.startTime)
 					
 				elif self.startTime == "" and self.endTime != "":
 					videoLength = self.convertTimeToSeconds(self.endTime)
-					ffmpegCommand.extend(["-to", self.endTime])
+					ffmpegCommand.insert(1, "-ss")
+					ffmpegCommand.insert(2, self.endTime)
 				
 				elif self.startTime != "" and self.endTime != "":
 					videoLength = self.convertTimeToSeconds(self.endTime) - self.convertTimeToSeconds(self.startTime)
-					ffmpegCommand.extend(["-ss", self.startTime, "-to", self.endTime])
+					ffmpegCommand.insert(1, "-ss")
+					ffmpegCommand.insert(2, self.startTime)
+					ffmpegCommand.insert(3, "-to")
+					ffmpegCommand.insert(4, self.endTime)
 				
 				bitrate = (self.targetFileSize/videoLength)-self.audioBitrate
 				bitrate = int(bitrate)
 				
 				fileSize = os.path.getsize(filePath)
 				
-				videoFPS = VideoFileClip(filePath).fps
+				command = ["./tools/ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate", "-of", "default=noprint_wrappers=1:nokey=1", filePath]
+				output = subprocess.check_output(command, universal_newlines=True)
+				fps_str = output.strip()
+				numerator, denominator = map(int, fps_str.split('/'))
+				videoFPS = float(numerator) / float(denominator)
 				if videoFPS > 30 and fileSize > 50000000:
 					ffmpegCommand.extend(["-r", "30"])
 				
-				clip = VideoFileClip(filePath)
-				width = clip.size[0]
-				height = clip.size[1]
+				command = ['./tools/ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=s=x:p=0', filePath]
+				process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+				output, _ = process.communicate()
+
+				# Parse the output to get width and height
+				dimensions = output.decode().strip().split('x')
+				width = int(dimensions[0])
+				height = int(dimensions[1])
 				if (width > 720 or height > 720) and fileSize > 100000000:
 					if width > height:
 						ffmpegCommand.extend(["-vf", "scale='trunc(oh*a/2)*2:720'"])
@@ -135,9 +150,6 @@ class ffmpeg2discord(Ui_MainWindow):
 					ffmpegCommand.extend(["-preset", "ultrafast", "-c:v", "libx264"])
 					ffmpegCommand2 = ffmpegCommand.copy()
 					
-					ffmpegCommand.extend(["-pass", "1"])
-					ffmpegCommand2.extend(["-pass", "2"])
-					
 					progressPercent = 2
 					progressPercent2 = 2
 					progressPercent3 = 50
@@ -145,9 +157,6 @@ class ffmpeg2discord(Ui_MainWindow):
 				elif self.ffmpegMode == "slow":
 					ffmpegCommand.extend(["-preset", "veryslow", "-c:v", "libx264"])
 					ffmpegCommand2 = ffmpegCommand.copy()
-					
-					ffmpegCommand.extend(["-pass", "1"])
-					ffmpegCommand2.extend(["-pass", "2"])
 					
 					progressPercent = 5
 					progressPercent2 = (5/4)
@@ -164,14 +173,14 @@ class ffmpeg2discord(Ui_MainWindow):
 					
 				videoProgress += 1
 				self.label.setText(str(videoProgress) + "/" + str(numOfVideos))
-				ffmpegCommand.extend(["-ac", "2", "-map", "0:v", "-b:v", str(bitrate), "-b:a", str(self.audioBitrate), "-c:a", "libopus", "-f", "mp4", str(trash), "-y"])
+				ffmpegCommand.extend(["-ac", "2", "-map", "0:v", "-b:v", str(bitrate), "-b:a", str(self.audioBitrate), "-c:a", "libopus", "-pass", "1", "-f", "mp4", str(trash), "-y"])
 				print(ffmpegCommand)
 				ff = FfmpegProgress(ffmpegCommand)
 				for progress in ff.run_command_with_progress():
 					self.progressBar.setValue(int(progress / progressPercent))
 					print(progress)
 				
-				ffmpegCommand2.extend(["-ac", "2", "-map", "0:v", "-b:v", str(bitrate), "-b:a", str(self.audioBitrate), "-c:a", "libopus", outputFile, "-y"])
+				ffmpegCommand2.extend(["-ac", "2", "-map", "0:v", "-b:v", str(bitrate), "-b:a", str(self.audioBitrate), "-c:a", "libopus", "-pass", "2", outputFile, "-y"])
 				ff = FfmpegProgress(ffmpegCommand2)
 				for progress in ff.run_command_with_progress():
 					self.progressBar.setValue(int(progress / progressPercent2) + progressPercent3)
