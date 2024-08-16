@@ -15,13 +15,13 @@ Windows
 ```
 virtualenv FFmpeg2Discord
 .\FFmpeg2Discord\Scripts\activate.ps1
-pip install moviepy pyqt5 ffmpeg_progress_yield pyinstaller
-.\FFmpeg2Discord\Scripts\pyinstaller.exe --onefile FFmpeg2Discord.py
+pip install pyqt5 ffmpeg_progress_yield pyinstaller
+.\FFmpeg2Discord\Scripts\pyinstaller.exe --noconsole --windowed --onedir --contents-directory libraries FFmpeg2Discord.py
 ```
 Linux
 ```
 virtualenv FFmpeg2Discord
 source FFmpeg2Discord/bin/activate
-pip install moviepy pyqt5 ffmpeg_progress_yield pyinstaller
+pip install pyqt5 ffmpeg_progress_yield pyinstaller
 ./FFmpeg2Discord/bin/pyinstaller --onefile FFmpeg2Discord.py
 ```
