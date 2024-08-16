@@ -14,8 +14,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(318, 214)
-        MainWindow.setMinimumSize(QtCore.QSize(318, 214))
+        MainWindow.resize(320, 240)
+        MainWindow.setMinimumSize(QtCore.QSize(320, 240))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -51,8 +51,21 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.radioButton_3)
         self.verticalLayout_2.addLayout(self.horizontalLayout_2)
         self.checkBox = QtWidgets.QCheckBox(self.centralwidget)
+        self.checkBox.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.checkBox.setObjectName("checkBox")
         self.verticalLayout_2.addWidget(self.checkBox)
+        self.label_2 = QtWidgets.QLabel(self.centralwidget)
+        self.label_2.setEnabled(True)
+        self.label_2.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.label_2.setAutoFillBackground(False)
+        self.label_2.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.label_2.setText("")
+        self.label_2.setScaledContents(True)
+        self.label_2.setAlignment(QtCore.Qt.AlignBottom|QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft)
+        self.label_2.setWordWrap(True)
+        self.label_2.setOpenExternalLinks(False)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout_2.addWidget(self.label_2)
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         self.label = QtWidgets.QLabel(self.centralwidget)
@@ -91,7 +104,7 @@ class Ui_MainWindow(object):
         self.radioButton_3.setToolTip(_translate("MainWindow", "<html><head/><body><p>Best quality. Video does not embed in Discord for iPhone users though.</p></body></html>"))
         self.radioButton_3.setText(_translate("MainWindow", "Slowest"))
         self.checkBox.setToolTip(_translate("MainWindow", "<html><head/><body><p>If the video has multiple audio tracks this option will combine them all into one track.</p></body></html>"))
-        self.checkBox.setText(_translate("MainWindow", "Combine Audio?"))
+        self.checkBox.setText(_translate("MainWindow", "Merge Audio Tracks"))
 
 
 if __name__ == "__main__":
