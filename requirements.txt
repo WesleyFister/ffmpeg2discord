@@ -1,3 +1,2 @@
-moviepy
 PyQt5
 ffmpeg_progress_yield
