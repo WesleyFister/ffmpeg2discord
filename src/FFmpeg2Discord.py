@@ -1,34 +1,34 @@
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QRegExp
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtCore import Qt
 from ui import Ui_MainWindow
 from encoder import encode
 import sys
 # TODO
-# Newly selected files when confirmed should be put into a queue
-# Detect that the input file is infact a video
-# Allow the user to input target file size in MiB and MB
+# Fix bitrate overshoot and guarantee the video is below the size limit
+# Fix crash on videos with no audio
+# Catch any errors with ffmpeg or ffprobe
+# Add option to normalize audio
 # Compress audio files
-# Check video codec, audio codec and original file size to see if it already complies with Discord
-# Make the the file list in the GUI colored with Green for done videos, yellow for in progress ones and red for failed or non-videos
 # Make the GUI scale based on monitor scaling
 # Make the GUI follow dark or white themes
 
 
 
 class ffmpeg2discord(Ui_MainWindow, QObject):	
-	arguments = pyqtSignal(list, str, str, str, str, int)
+	arguments = pyqtSignal(list, str, bool, bool, str, str, int)
 	
 	def __init__(self, window):
 		super().__init__()
 		self.filePathList = ""
 		self.ffmpegMode = "slow"
-		self.mergeAudio = ""
+		self.mixAudio = False
+		self.noAudio = False
 		self.startTime = "" 
 		self.endTime = ""
-		self.mib = 8388608
-		self.targetFileSize = 25 * self.mib
 		
 		self.encode = encode()
 		self.arguments.connect(self.encode.passData)
@@ -39,24 +39,36 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
 		self.label.setText("0/0")
 		self.label_2.setVisible(False)
 		self.label.setVisible(False)
-		self.startTime = self.lineEdit.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])")))
-		self.endTime = self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])")))
+		self.lineEdit.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])"))) ## Only allow time in HH:MM:SS.ms. It works but it is annoying to use.
+		self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])")))
+		self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow positive numbers starting from 1.
+		self.progressBar.setMaximum(10000) # setting maximum value for 2 decimal points
+		self.progressBar.setFormat("%.02f %%" % 0)
 		self.pushButton.clicked.connect(self.fileOpen)
 		self.radioButton.clicked.connect(lambda: self.radioOptions("fastest"))
 		self.radioButton_2.clicked.connect(lambda: self.radioOptions("slow"))
 		self.radioButton_3.clicked.connect(lambda: self.radioOptions("slowest"))
 		self.checkBox.stateChanged.connect(self.checkboxToggled)
+		self.checkBox_2.stateChanged.connect(self.checkbox_2Toggled)
 		self.buttonBox.rejected.connect(self.cancel)
 		self.buttonBox.accepted.connect(self.confirm)
 		
+	@pyqtSlot(str)
+	def updateLabel(self, data):
+		self.label.setText(data)
+		
 	@pyqtSlot(list)
-	def updateLabels(self, data):
-		self.label.setText(data[0])
-		self.label_2.setText(data[1])
+	def updateLabel_2(self, filePaths):
+		displayFilePaths = ""
+		for filePath in filePaths:
+			displayFilePaths += filePath
+			
+		self.label_2.setText(displayFilePaths)
 		
 	@pyqtSlot(float)
 	def updateProgressBar(self, data):
-		self.progressBar.setValue(int(data))
+		self.progressBar.setValue(int(data * 100))
+		self.progressBar.setFormat("%.02f %%" % data) 
 	
 	def fileOpen(self):
 		file_dialog = QFileDialog()
@@ -83,21 +95,54 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
 		
 	def checkboxToggled(self):
 		if self.checkBox.isChecked():
-			self.mergeAudio = "mergeAudio"
+			self.mixAudio = True
+			self.checkBox_2.setChecked(False)
 		
 		else:
-			self.mergeAudio = "noMergeAudio"
+			self.mixAudio = False
+
+	def checkbox_2Toggled(self):
+		if self.checkBox_2.isChecked():
+			self.noAudio = True
+			self.checkBox.setChecked(False)
+
+		else:
+			self.noAudio = False
 	
 	def cancel(self):
 		self.encode.stop()
 		self.encode.wait()
+
+	def calculateTargetFileSize(self):
+		# In bits not bytes.
+		mib = 8388608
+		mb = 8000000
+
+		fileSize = self.lineEdit_3.text()
+		dataUnit = self.comboBox.currentText()
+
+		if fileSize == "": # If the user inputs nothing.
+			fileSize = 10 # Discord Default.
+
+		else:
+			fileSize = int(fileSize)
+
+		if dataUnit == "MiB":
+			targetFileSize = fileSize * mib
+
+		else:
+			targetFileSize = fileSize * mb
+
+		return targetFileSize
 		
 	def confirm(self):
 		if self.filePathList:
+			targetFileSize = self.calculateTargetFileSize()
 			self.startTime = self.lineEdit.text()
 			self.endTime = self.lineEdit_2.text()
-			self.arguments.emit(self.filePathList, self.ffmpegMode, self.mergeAudio, self.startTime, self.endTime, self.targetFileSize)
-			self.encode.updateLabel.connect(self.updateLabels)
+			self.arguments.emit(self.filePathList, self.ffmpegMode, self.mixAudio, self.noAudio, self.startTime, self.endTime, targetFileSize)
+			self.encode.updateLabel.connect(self.updateLabel)
+			self.encode.updateLabel_2.connect(self.updateLabel_2)
 			self.encode.updateProgressBar.connect(self.updateProgressBar)
 			self.encode.start()
 		
