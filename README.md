@@ -7,9 +7,10 @@ This program is very CPU intensive and on my i7 8086k it took about 3 minutes to
 
 You can either download the standalone binary for your system which contains everything needed to run. Alternatively you can install the dependencies and run the script.
 
-`pip install -r requirements.txt`
-
 Install FFmpeg and jpegoptim to your system's path.
+
+Then:
+`pip install -r requirements.txt`
 
 Binaries are built with the following commands.
 
