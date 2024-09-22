@@ -12,7 +12,7 @@ Install FFmpeg and jpegoptim to your system's path.
 Then:
 `pip install -r requirements.txt`
 
-Binaries are built with the following commands.
+### Build binaries
 
 Windows
 ```
