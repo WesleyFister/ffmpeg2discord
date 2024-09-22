@@ -9,6 +9,8 @@ You can either download the standalone binary for your system which contains eve
 
 `pip install -r requirements.txt`
 
+Install FFmpeg and jpegoptim to your system's path.
+
 Binaries are built with the following commands.
 
 Windows
