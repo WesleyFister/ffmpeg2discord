@@ -9,10 +9,9 @@ from encoder import encode
 import sys
 # TODO
 # Fix bitrate overshoot and guarantee the video is below the size limit
-# Fix crash on videos with no audio
+# Allow multiple instances of FFmpeg2Discord by changing the name of the ffmpeg2pass-1.log
 # Catch any errors with ffmpeg or ffprobe
 # Add option to normalize audio
-# Compress audio files
 # Make the GUI scale based on monitor scaling
 # Make the GUI follow dark or white themes
 
