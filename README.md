@@ -1,7 +1,17 @@
-Frustrated by manually using ffmpeg to compress videos to get around Discord's 25 MiB file size limit, I wrote a simple Python program to automate the process. This program works for both Windows and Linux systems, assuming that you have Python and the dependencies installed.
+Frustrated by manually using ffmpeg to compress videos to get around Discord's 10 MiB file size limit, I wrote a simple Python program to automate the process. This program works for both Windows and Linux systems, assuming that you have Python and the dependencies installed.
 
 ### Warning
 This program is very CPU intensive and on my i7 8086k it took about 3 minutes to compress a 1 minute 1080p 60 FPS video.
+
+### Features
+- 100% offline, opensource and private
+- Ability to compress videos, images and audio
+- Set desired file size in MiB or MB
+- Trim videos and audio
+- Remove audio
+- Mix audio tracks (if you record your gameplay and mic audio seperately)
+- Removes metadata
+- Batch processing
 
 ### Install
 
