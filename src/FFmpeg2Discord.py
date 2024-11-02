@@ -11,16 +11,16 @@ import utils
 import sys
 # TODO
 # Fix bitrate overshoot and guarantee the video is below the size limit
-# Allow multiple instances of FFmpeg2Discord by changing the name of the ffmpeg2pass-1.log
 # Catch any errors with ffmpeg or ffprobe
-# Add option to normalize audio
+# Make trimming video easier to do
+# Clean up code and make it more readable
 # Make the GUI scale based on monitor scaling
 # Make the GUI follow dark or white themes
 
 
 
 class ffmpeg2discord(Ui_MainWindow, QObject):
-    arguments = pyqtSignal(list, str, bool, bool, str, str, int, str, str, str)
+    arguments = pyqtSignal(dict)
     
     def __init__(self, window):
         super().__init__()
@@ -28,6 +28,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.ffmpegMode = "slow"
         self.mixAudio = False
         self.noAudio = False
+        self.normalizezAudio = False
         self.startTime = "" 
         self.endTime = ""
         
@@ -39,8 +40,8 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.window = window
         self.setupUi(self.window)
         self.label.setText("0/0")
-        self.label_2.setVisible(False)
         self.label.setVisible(False)
+        self.label_2.setVisible(False)
         self.lineEdit.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])"))) ## Only allow time in HH:MM:SS.ms. It works but it is annoying to use.
         self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])")))
         self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow positive numbers starting from 1.
@@ -52,6 +53,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.radioButton_3.clicked.connect(lambda: self.radioOptions("slowest"))
         self.checkBox.stateChanged.connect(self.checkboxToggled)
         self.checkBox_2.stateChanged.connect(self.checkbox_2Toggled)
+        self.checkBox_3.stateChanged.connect(self.checkbox_3Toggled)
         self.buttonBox.rejected.connect(self.cancel)
         self.buttonBox.accepted.connect(self.confirm)
 
@@ -66,6 +68,10 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
             displayFilePaths += filePath
             
         self.label_2.setText(displayFilePaths)
+
+    @pyqtSlot(str)
+    def updateLabel_6(self, data):
+        self.label_6.setText(data)
         
     @pyqtSlot(float)
     def updateProgressBar(self, data):
@@ -90,8 +96,10 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     def radioOptions(self, optionType):
         if optionType == "fastest":
             self.ffmpegMode = "fastest"
+
         elif optionType == "slow":
             self.ffmpegMode = "slow"
+
         elif optionType == "slowest":
             self.ffmpegMode = "slowest"
         
@@ -107,9 +115,15 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         if self.checkBox_2.isChecked():
             self.noAudio = True
             self.checkBox.setChecked(False)
+            self.checkBox_3.setChecked(False)
+
+    def checkbox_3Toggled(self):
+        if self.checkBox_3.isChecked():
+            self.normalizezAudio = True
+            self.checkBox_2.setChecked(False)
 
         else:
-            self.noAudio = False
+            self.normalizezAudio = False
     
     def cancel(self):
         self.encode.stop()
@@ -140,10 +154,30 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
             targetFileSize = utils.calculateTargetFileSize(fileSize, dataUnit)
             self.startTime = self.lineEdit.text()
             self.endTime = self.lineEdit_2.text()
-            self.arguments.emit(self.filePathList, self.ffmpegMode, self.mixAudio, self.noAudio, self.startTime, self.endTime, targetFileSize, ffmpeg, ffprobe, jpegoptim)
+            imageFormat = self.comboBox_2.currentText()
+            audioFormat = self.comboBox_3.currentText()
+            videoFormat = self.comboBox_4.currentText()
+            args = {
+                    'filePathList': self.filePathList,
+                    'ffmpegMode': self.ffmpegMode,
+                    'mixAudio': self.mixAudio,
+                    'noAudio': self.noAudio,
+                    'normalizezAudio': self.normalizezAudio,
+                    'startTime': self.startTime,
+                    'endTime': self.endTime,
+                    'targetFileSize': targetFileSize,
+                    'ffmpeg': ffmpeg,
+                    'ffprobe': ffprobe,
+                    'jpegoptim': jpegoptim,
+                    'imageFormat': imageFormat,
+                    'audioFormat': audioFormat,
+                    'videoFormat': videoFormat
+            }
+            self.arguments.emit(args)
             
             self.encode.updateLabel.connect(self.updateLabel)
             self.encode.updateLabel_2.connect(self.updateLabel_2)
+            self.encode.updateLabel_6.connect(self.updateLabel_6)
             self.encode.updateProgressBar.connect(self.updateProgressBar)
             self.encode.start()
         

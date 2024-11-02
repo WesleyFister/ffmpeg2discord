@@ -7,21 +7,13 @@ import os
 
 
 
-def cleanUp(audioPath, audioExists): # Delete temporary files.
+def cleanUp(logFile, audioPath, audioExists): # Delete temporary files.
     if os.path.exists(audioPath) and audioExists == True:
         os.remove(audioPath)
-        
-    if os.path.exists("ffmpeg2pass-0.log"):
-        os.remove("ffmpeg2pass-0.log")
-        
-    if os.path.exists("ffmpeg2pass-0.log.mbtree"):
-        os.remove("ffmpeg2pass-0.log.mbtree")
-        
-    if os.path.exists("ffmpeg2pass-0.log.temp"):
-        os.remove("ffmpeg2pass-0.log.temp")
-        
-    if os.path.exists("ffmpeg2pass-0.log.mbtree.temp"):
-        os.remove("ffmpeg2pass-0.log.mbtree.temp")
+
+    for file in os.listdir("."):
+        if os.path.isfile(os.path.join(".", file)) and logFile in file:
+            os.remove(file)
 
 def convertTimeToSeconds(timeStr):
     timeStr = timeStr.split(":")
@@ -53,52 +45,65 @@ def mimeType(filePath):
     return fileType, fileFormat
 
 def getFileInfo(filePath, mixAudio):
-    videoJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v", "-count_packets", filePath], **createNoWindow())
-    videoJsonData = json.loads(videoJsonData)
+    fileInfo = {}
+    
+    fileInfo["fileType"], fileInfo["fileFormat"] = mimeType(filePath)
+    dirName, file = os.path.split(filePath)
+    fileInfo["fileName"], fileInfo["fileExtension"] = os.path.splitext(file)
+    fileInfo["dirName"] = dirName + '/'
 
-    fileInfo = { "videoStreams": 0 }
-    for stream in videoJsonData["streams"]:
-        if stream["codec_type"]:
-            fileInfo["videoStreams"] += 1
-
-    if fileInfo["videoStreams"] > 0:
-
-        fileInfo["videoLength"] = float(videoJsonData['format']['duration'])
-        fileInfo["width"] = int(videoJsonData['streams'][0]['width'])
-        fileInfo["height"] = int(videoJsonData['streams'][0]['height'])
-        fileInfo["numberOfVideoPackets"] = int(videoJsonData['streams'][0]['nb_read_packets'])
-
-        numerator, denominator = map(int, videoJsonData['streams'][0]['avg_frame_rate'].split('/'))
-        framerate = numerator / denominator
-        fileInfo["framerate"] = framerate
-
-    audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a", "-count_packets", filePath], **createNoWindow())
-    audioJsonData = json.loads(audioJsonData)
-
+    fileInfo["videoStreams"] = 0
     fileInfo["audioStreams"] = 0
-    for stream in audioJsonData["streams"]:
-        if stream["codec_type"]:
-            fileInfo["audioStreams"] += 1
+    if fileInfo["fileType"] == "audio" or fileInfo["fileType"] == "video":
+        videoJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v", "-count_packets", filePath], **createNoWindow())
+        videoJsonData = json.loads(videoJsonData)
 
-    if fileInfo["audioStreams"] > 0:
-        fileInfo["audioChannels"] = audioJsonData['streams'][0]["channels"]
-        fileInfo["audioCodec"] = audioJsonData['streams'][0]["codec_name"]
-        fileInfo["audioDuration"] = float(audioJsonData['format']["duration"])
-        fileInfo["numberOfAudioPackets"] = int(audioJsonData['streams'][0]['nb_read_packets'])
+        for stream in videoJsonData["streams"]:
+            if stream["codec_type"]:
+                fileInfo["videoStreams"] += 1
 
-        if mixAudio == True:
-            streams = "a"
+        if fileInfo["videoStreams"] > 0:
 
-        else:
-            streams = "a:0"
+            fileInfo["videoLength"] = float(videoJsonData['format']['duration'])
+            fileInfo["width"] = int(videoJsonData['streams'][0]['width'])
+            fileInfo["height"] = int(videoJsonData['streams'][0]['height'])
+            fileInfo["numberOfVideoPackets"] = int(videoJsonData['streams'][0]['nb_read_packets'])
 
-        audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-select_streams", streams, "-show_entries", "packet=size", filePath], **createNoWindow())
+            numerator, denominator = map(int, videoJsonData['streams'][0]['avg_frame_rate'].split('/'))
+            try:
+                framerate = numerator / denominator
+
+            except ZeroDivisionError:
+                framerate = 0
+                
+            fileInfo["framerate"] = framerate
+
+        audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a", "-count_packets", filePath], **createNoWindow())
         audioJsonData = json.loads(audioJsonData)
-        audioSize = 0
-        for audioJsonData in audioJsonData["packets"]:
-            audioSize += int(audioJsonData["size"])
-        
-        fileInfo["audioBitrate"] = int((audioSize * 8) / fileInfo["audioDuration"])
+
+        for stream in audioJsonData["streams"]:
+            if stream["codec_type"]:
+                fileInfo["audioStreams"] += 1
+
+        if fileInfo["audioStreams"] > 0:
+            fileInfo["audioChannels"] = audioJsonData['streams'][0]["channels"]
+            fileInfo["audioCodec"] = audioJsonData['streams'][0]["codec_name"]
+            fileInfo["audioDuration"] = float(audioJsonData['format']["duration"])
+            fileInfo["numberOfAudioPackets"] = int(audioJsonData['streams'][0]['nb_read_packets'])
+
+            if mixAudio == True:
+                streams = "a"
+
+            else:
+                streams = "a:0"
+
+            audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-select_streams", streams, "-show_entries", "packet=size", filePath], **createNoWindow())
+            audioJsonData = json.loads(audioJsonData)
+            audioSize = 0
+            for audioJsonData in audioJsonData["packets"]:
+                audioSize += int(audioJsonData["size"])
+            
+            fileInfo["audioBitrate"] = int((audioSize * 8) / fileInfo["audioDuration"])
 
     return fileInfo
 
