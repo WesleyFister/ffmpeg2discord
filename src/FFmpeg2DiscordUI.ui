@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>460</width>
-    <height>410</height>
+    <width>420</width>
+    <height>380</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>460</width>
-    <height>410</height>
+    <width>420</width>
+    <height>380</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -62,52 +62,6 @@
         </property>
         <property name="placeholderText">
          <string>End time: HH:MM:SS.ms</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <layout class="QHBoxLayout" name="horizontalLayout_2">
-      <item alignment="Qt::AlignLeft">
-       <widget class="QRadioButton" name="radioButton">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Fastest compression times, worst quality.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>Fastest</string>
-        </property>
-       </widget>
-      </item>
-      <item alignment="Qt::AlignHCenter">
-       <widget class="QRadioButton" name="radioButton_2">
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Slow compression times, good quality.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>Slow</string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item alignment="Qt::AlignRight">
-       <widget class="QRadioButton" name="radioButton_3">
-        <property name="baseSize">
-         <size>
-          <width>0</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="toolTip">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Slowest compression times, great quality.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-        <property name="text">
-         <string>Slowest</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
         </property>
        </widget>
       </item>
@@ -190,21 +144,21 @@
         <item>
          <widget class="QComboBox" name="comboBox_4">
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;H.264:&lt;/span&gt; most compatible and faster compression but offers lower quality videos&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;VP9:&lt;/span&gt; slower compression but offers higher quality videos (does not embed for iPhone users on Discord)&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;AV1:&lt;/span&gt; Best compression ratio but can have lower compatibility (does not embed at all on Discord)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;H.264:&lt;/span&gt; fastest compression and most compatible but offers lower quality videos&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;VP9:&lt;/span&gt; slower compression but offers higher quality videos (does not embed for iPhone users on Discord)&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;AV1:&lt;/span&gt; slowest compression but offers highest quality videos (does not embed at all on Discord)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <item>
            <property name="text">
-            <string comment="test" extracomment="test">H.264</string>
+            <string comment="test" extracomment="test">MP4 (H.264)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>VP9</string>
+            <string>WEBM (VP9)</string>
            </property>
           </item>
           <item>
            <property name="text">
-            <string>AV1</string>
+            <string>WEBM (AV1)</string>
            </property>
           </item>
          </widget>
@@ -241,7 +195,7 @@
            </sizepolicy>
           </property>
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WEBM (Video):&lt;/span&gt; black video with audio track. This is for websites that don't directly support audio (like Discord on mobile).&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WEBM:&lt;/span&gt; audio track only&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;OGG:&lt;/span&gt; audio track only&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WEBM (Video):&lt;/span&gt; black video with Opus audio track. This is for websites that don't directly support audio (like Discord on mobile).&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;WEBM:&lt;/span&gt; Opus audio track only&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;OGG:&lt;/span&gt; Opus audio track only&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
           <item>
            <property name="text">

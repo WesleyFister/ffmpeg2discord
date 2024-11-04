@@ -22,7 +22,6 @@ class encode(QThread):
     
     def passData(self, args):
         self.filePathList = args['filePathList']
-        self.ffmpegMode = args['ffmpegMode']
         self.mixAudio = args['mixAudio']
         self.noAudio = args['noAudio']
         self.normalizezAudio = args['normalizezAudio']
@@ -68,14 +67,14 @@ class encode(QThread):
             containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
             containerpacketOverhead = 12 * 8    # MKV seems to use ~6.25 to 9 bytes per packet however leaning on the safe side
 
-        if self.videoFormat == "H.264":
+        if self.videoFormat == "MP4 (H.264)":
             mult = 0.97
 
-        elif self.videoFormat == "VP9":
+        elif self.videoFormat == "WEBM (VP9)":
             mult = 0.96
 
-        elif self.videoFormat == "AV1":
-            mult = 0.98
+        elif self.videoFormat == "WEBM (AV1)":
+            mult = 0.95
         
         if videoOnly == False:
             if audioOnly == True:
@@ -137,46 +136,20 @@ class encode(QThread):
 
         print("Video length:", fileInfo["videoLength"])
 
-        # FFmpeg commands based on user selected options.
-        if self.ffmpegMode == "fastest":
-            preset_h264 = "veryfast"
-
-            deadline = "good"
-            cpu_used = "4"
-
-            preset_av1 = "7"
-
-        elif self.ffmpegMode == "slow":
-            preset_h264 = "medium"
-
-            deadline = "good"
-            cpu_used = "1"
-
-            preset_av1 = "4"
-
-        elif self.ffmpegMode == "slowest":
-            preset_h264 = "veryslow"
-
-            deadline = "best"
-            cpu_used = "0"
-            
-            preset_av1 = "0"
-
-        if self.videoFormat == "H.264":
-            codec_flags = ["-preset", preset_h264, "-aq-mode", "3", "-c:v", "libx264"]
+        if self.videoFormat == "MP4 (H.264)":
+            codec_flags = ["-preset", "veryslow", "-aq-mode", "3", "-c:v", "libx264"]
             container = "mp4"
             extentsion = "mp4"
             audioCodec = "aac"
-            ffmpegCommand.extend(["-movflags", "+faststart"])
 
-        elif self.videoFormat == "VP9":
-            codec_flags = ["-deadline", deadline, "-cpu-used", cpu_used, "-c:v", "libvpx-vp9", "-row-mt", "1"]
+        elif self.videoFormat == "WEBM (VP9)":
+            codec_flags = ["-deadline", "good", "-cpu-used", "1", "-c:v", "libvpx-vp9", "-row-mt", "1"]
             container = "webm"
             extentsion = "webm"
             audioCodec = "libopus"
 
-        elif self.videoFormat == "AV1":
-            codec_flags = ["-preset", preset_av1, "-c:v", "libsvtav1", "-row-mt", "1"]
+        elif self.videoFormat == "WEBM (AV1)":
+            codec_flags = ["-preset", "4", "-c:v", "libsvtav1", "-row-mt", "1"]
             container = "webm"
             extentsion = "webm"
             audioCodec = "libopus"
@@ -196,6 +169,11 @@ class encode(QThread):
             ffmpegCommand.extend(codec_flags)
 
         videoBitrate = self.calculateBitrate(fileInfo, container, fileInfo["videoLength"], audioCodec, audioOnly=False, videoOnly=True, audioPath=audioPath)
+        if videoBitrate <= 0:
+            return "bitrateLowError"
+
+        if container == "mp4":
+            ffmpegCommand.extend(["-movflags", "+faststart"])
 
         fileSize = os.path.getsize(filePath)
         print("File size:", fileSize)
@@ -221,6 +199,10 @@ class encode(QThread):
                 if testPixelsPerSecond <= pixelsPerSecond and testHeight < fileInfo["height"]:
                     height = testHeight
                     break
+                    
+                # If testPixelsPerSecond is never below pixelsPerSecond then the program will crash. This is added to avoid that.
+                else:
+                    height = testHeight
 
         '''
         if fileInfo["videoLength"] <= 30:
@@ -239,7 +221,7 @@ class encode(QThread):
 
         ffmpegCommand.extend(["-vf", "scale='trunc(oh*a/2)*2:{}':flags=bicubic,format=yuv420p".format(height)])
 
-        outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_" + self.videoFormat + "_" + self.ffmpegMode + "." + extentsion
+        outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_" + self.videoFormat + "." + extentsion
 
         ffmpegCommand.extend(["-map", "0:v", "-map_metadata", "-1", "-map_chapters", "-1", "-avoid_negative_ts", "make_zero", "-b:v", str(videoBitrate)])
 
@@ -283,7 +265,7 @@ class encode(QThread):
         encodeAudioCommand.extend(["-i", str(file)])
 
         if audioOnly == True:
-            outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_" + self.ffmpegMode + "."
+            outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord" + "."
             
             if self.audioFormat == "WEBM (Video)":
                 audioCodec = "libopus"
@@ -307,7 +289,7 @@ class encode(QThread):
             encodeAudioCommand.extend(["-vn"])
             outputFile += container # The audio file should use the same container format as the video to get an accurate idea on the file size. This is because Matroska has a higher muxing overhead for audio than something like Opus.
             
-        audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=True, videoOnly=False, audioPath=None)
+        audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=False, videoOnly=False, audioPath=None)
         if audioBitrate == "copy":
             encodeAudioCommand.extend(["-c:a", str(audioBitrate)])
 
@@ -352,17 +334,9 @@ class encode(QThread):
 
     def encodeImage(self, filePath, fileInfo):
         tempFilePath = os.getcwd() + "/" + fileInfo["fileName"] + os.urandom(8).hex() + fileInfo["fileExtension"]
-        if self.ffmpegMode == "fastest":
-            compression_level = 0
-
-        elif self.ffmpegMode == "slow":
-            compression_level = 4
-
-        elif self.ffmpegMode == "slowest":
-            compression_level = 6
 
         if self.imageFormat == "WEBP":
-            extentsion = self.ffmpegMode + ".webp"
+            extentsion = ".webp"
             container = "webp"
             encoder = "libwebp_anim"
             high = 100
@@ -390,7 +364,7 @@ class encode(QThread):
 
         elif fileInfo["fileFormat"] != "jpeg" and self.imageFormat == "WEBP":
             outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_Lossless_" + extentsion
-            subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", str(compression_level), "-c:v", encoder, "-lossless", "1", "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
+            subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", "6", "-c:v", encoder, "-lossless", "1", "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
 
         else:
             shutil.copy(filePath, tempFilePath)
@@ -408,7 +382,7 @@ class encode(QThread):
                 print(f"Quality set to {middle}")
                 previousMiddle = middle
 
-                subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", str(compression_level), "-c:v", encoder, "-q:v", str(middle), "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
+                subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", "6", "-c:v", encoder, "-q:v", str(middle), "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
 
                 tempFileSize = os.path.getsize(tempFilePath) * 8
                 print(tempFileSize)
@@ -486,10 +460,10 @@ class encode(QThread):
 
                 if self.running == True:
                     if os.path.exists(outputFile) == True:
-                        if (os.path.getsize(outputFile) * 8) > self.targetFileSize:
-                            print("Compression failed: File is too large.")
+                        if (os.path.getsize(outputFile) * 8) > self.targetFileSize or outputFile == "bitrateLowError":
+                            print("Compression failed.")
                             print(outputFile)
-                            self.updateLabel_6.emit("Compression failed: File is too large.")
+                            self.updateLabel_6.emit("Compression failed.")
                             displayFilePathList[currentIndex] = '<font color="red">' + displayFilePath + '</font><br>'
                             self.updateLabel_2.emit(displayFilePathList)
 
