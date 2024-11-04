@@ -11,6 +11,7 @@ import utils
 import sys
 # TODO
 # Fix bitrate overshoot and guarantee the video is below the size limit
+# Remove Fastest, Slow and Slowest options
 # Catch any errors with ffmpeg or ffprobe
 # Make trimming video easier to do
 # Clean up code and make it more readable
@@ -25,7 +26,6 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     def __init__(self, window):
         super().__init__()
         self.filePathList = ""
-        self.ffmpegMode = "slow"
         self.mixAudio = False
         self.noAudio = False
         self.normalizezAudio = False
@@ -40,17 +40,14 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.window = window
         self.setupUi(self.window)
         self.label.setText("0/0")
-        self.label.setVisible(False)
-        self.label_2.setVisible(False)
+        self.label.setVisible(True)
+        self.label_2.setVisible(True)
         self.lineEdit.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])"))) ## Only allow time in HH:MM:SS.ms. It works but it is annoying to use.
         self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])")))
         self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow positive numbers starting from 1.
         self.progressBar.setMaximum(10000) # setting maximum value for 2 decimal points
         self.progressBar.setFormat("%.02f %%" % 0)
         self.pushButton.clicked.connect(self.fileOpen)
-        self.radioButton.clicked.connect(lambda: self.radioOptions("fastest"))
-        self.radioButton_2.clicked.connect(lambda: self.radioOptions("slow"))
-        self.radioButton_3.clicked.connect(lambda: self.radioOptions("slowest"))
         self.checkBox.stateChanged.connect(self.checkboxToggled)
         self.checkBox_2.stateChanged.connect(self.checkbox_2Toggled)
         self.checkBox_3.stateChanged.connect(self.checkbox_3Toggled)
@@ -92,16 +89,6 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.label_2.setVisible(True)
         self.label.setText("0/" + str(len(self.filePathList)))
         self.label.setVisible(True)
-    
-    def radioOptions(self, optionType):
-        if optionType == "fastest":
-            self.ffmpegMode = "fastest"
-
-        elif optionType == "slow":
-            self.ffmpegMode = "slow"
-
-        elif optionType == "slowest":
-            self.ffmpegMode = "slowest"
         
     def checkboxToggled(self):
         if self.checkBox.isChecked():
@@ -159,7 +146,6 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
             videoFormat = self.comboBox_4.currentText()
             args = {
                     'filePathList': self.filePathList,
-                    'ffmpegMode': self.ffmpegMode,
                     'mixAudio': self.mixAudio,
                     'noAudio': self.noAudio,
                     'normalizezAudio': self.normalizezAudio,
