@@ -20,24 +20,26 @@ class encode(QThread):
     def __init__(self):
         super().__init__()
     
+    # Method to pass data to the encode thread
     def passData(self, args):
-        self.filePathList = args['filePathList']
-        self.mixAudio = args['mixAudio']
-        self.noAudio = args['noAudio']
-        self.normalizezAudio = args['normalizezAudio']
-        self.startTime = args['startTime']
-        self.endTime = args['endTime']
-        self.targetFileSize = args['targetFileSize']
-        self.ffmpeg = args['ffmpeg']
-        self.ffprobe = args['ffprobe']
-        self.jpegoptim = args['jpegoptim']
-        self.imageFormat = args['imageFormat']
-        self.audioFormat = args['audioFormat']
-        self.videoFormat = args['videoFormat']
+        self.filePathList = args["filePathList"]
+        self.mixAudio = args["mixAudio"]
+        self.noAudio = args["noAudio"]
+        self.normalizezAudio = args["normalizezAudio"]
+        self.startTime = args["startTime"]
+        self.endTime = args["endTime"]
+        self.targetFileSize = args["targetFileSize"]
+        self.ffmpeg = args["ffmpeg"]
+        self.ffprobe = args["ffprobe"]
+        self.jpegoptim = args["jpegoptim"]
+        self.imageFormat = args["imageFormat"]
+        self.audioFormat = args["audioFormat"]
+        self.videoFormat = args["videoFormat"]
         
     def stop(self):
         self.running = False
 
+    # Method to calculate the duration of the video based on user supplied start and end times
     def calculateDuration(self, duration):
         if self.startTime != "" and self.endTime == "":
             duration -= utils.convertTimeToSeconds(self.startTime)
@@ -270,7 +272,7 @@ class encode(QThread):
             if self.audioFormat == "WEBM (Video)":
                 audioCodec = "libopus"
                 container = "webm"
-                encodeAudioCommand.extend(['-f', 'lavfi', '-i', 'color=black:size=160x120', '-map', '1:v:0', '-r', '1', '-shortest', '-c:v', 'libvpx-vp9'])
+                encodeAudioCommand.extend(["-f", "lavfi", "-i", "color=black:size=160x120", "-map", "1:v:0", "-r", "1", "-shortest", "-c:v", "libvpx-vp9"])
 
             elif self.audioFormat == "WEBM":
                 audioCodec = "libopus"
@@ -303,13 +305,13 @@ class encode(QThread):
                 encodeAudioCommand.extend(["-ac", "1",])
 
         if self.normalizezAudio == True and (self.mixAudio == True and fileInfo["audioStreams"] > 1):
-            encodeAudioCommand.extend(["-filter_complex", f"loudnorm,amerge=inputs={fileInfo["audioStreams"]}[a]", '-map', '[a]']) # Normalizes the first audio track only?
+            encodeAudioCommand.extend(["-filter_complex", f"loudnorm,amerge=inputs={fileInfo['audioStreams']}[a]", "-map", "[a]"]) # Normalizes the first audio track only?
         
         elif self.normalizezAudio == True:
             encodeAudioCommand.extend(["-filter_complex", "loudnorm"])
 
         elif self.mixAudio == True and fileInfo["audioStreams"] > 1:
-            encodeAudioCommand.extend(["-filter_complex", f"amerge=inputs={fileInfo["audioStreams"]}[a]", '-map', '[a]'])
+            encodeAudioCommand.extend(["-filter_complex", f"amerge=inputs={fileInfo['audioStreams']}[a]", "-map", "[a]"])
             
         else:
             encodeAudioCommand.extend(["-map", "0:a:0"])
@@ -420,14 +422,14 @@ class encode(QThread):
         segment = ""
         displayFilePathList = []
 
-        if os.name == 'posix': # Linux/Unix
+        if os.name == "posix": # Linux/Unix
             null = "/dev/null"
 
-        elif os.name == 'nt': # Windows
+        elif os.name == "nt": # Windows
             null = "NUL"
 
         for displayFile in self.filePathList:
-            displayFilePathList.extend([displayFile + '<br>'])
+            displayFilePathList.extend([displayFile + "<br>"])
 
         for filePath in self.filePathList:
             if filePath:
@@ -438,7 +440,7 @@ class encode(QThread):
                 numOfVideos = len(self.filePathList)
                 displayFilePath = filePath
                 currentIndex = self.filePathList.index(filePath)
-                displayFilePathList[currentIndex] = '<font color="orange">' + displayFilePath + '</font><br>'
+                displayFilePathList[currentIndex] = "<font color='orange'>" + displayFilePath + "</font><br>"
                 videoProgress += 1
                 self.updateLabel.emit(str(videoProgress) + "/" + str(numOfVideos))
                 self.updateLabel_2.emit(displayFilePathList)
@@ -464,7 +466,7 @@ class encode(QThread):
                             print("Compression failed.")
                             print(outputFile)
                             self.updateLabel_6.emit("Compression failed.")
-                            displayFilePathList[currentIndex] = '<font color="red">' + displayFilePath + '</font><br>'
+                            displayFilePathList[currentIndex] = "<font color='red'>" + displayFilePath + "</font><br>"
                             self.updateLabel_2.emit(displayFilePathList)
 
                         else:
@@ -472,7 +474,7 @@ class encode(QThread):
                             print(outputFile)
                             self.updateLabel_6.emit("Compression completed successfully!")
                             self.updateProgressBar.emit(100.00)
-                            displayFilePathList[currentIndex] = '<font color="green">' + displayFilePath + '</font><br>'
+                            displayFilePathList[currentIndex] = "<font color='green'>" + displayFilePath + "</font><br>"
                             self.updateLabel_2.emit(displayFilePathList)
 
                 else:

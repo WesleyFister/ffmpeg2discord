@@ -28,7 +28,7 @@ def createNoWindow(): # Passes argument to subprocess calls to not create a term
     kwargs = {}
     
     if system() == "Windows":
-        kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
+        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
         
     return kwargs
 
@@ -40,7 +40,7 @@ def mimeType(filePath):
         fileFormat = None
 
     else:
-        fileType, fileFormat = mimeType.split('/')
+        fileType, fileFormat = mimeType.split("/")
 
     return fileType, fileFormat
 
@@ -50,7 +50,7 @@ def getFileInfo(filePath, mixAudio):
     fileInfo["fileType"], fileInfo["fileFormat"] = mimeType(filePath)
     dirName, file = os.path.split(filePath)
     fileInfo["fileName"], fileInfo["fileExtension"] = os.path.splitext(file)
-    fileInfo["dirName"] = dirName + '/'
+    fileInfo["dirName"] = dirName + "/"
 
     fileInfo["videoStreams"] = 0
     fileInfo["audioStreams"] = 0
@@ -64,12 +64,13 @@ def getFileInfo(filePath, mixAudio):
 
         if fileInfo["videoStreams"] > 0:
 
-            fileInfo["videoLength"] = float(videoJsonData['format']['duration'])
-            fileInfo["width"] = int(videoJsonData['streams'][0]['width'])
-            fileInfo["height"] = int(videoJsonData['streams'][0]['height'])
-            fileInfo["numberOfVideoPackets"] = int(videoJsonData['streams'][0]['nb_read_packets'])
+            fileInfo["videoLength"] = float(videoJsonData["format"]["duration"])
+            fileInfo["width"] = int(videoJsonData["streams"][0]["width"])
+            fileInfo["height"] = int(videoJsonData["streams"][0]["height"])
+            fileInfo["numberOfVideoPackets"] = int(videoJsonData["streams"][0]["nb_read_packets"])
 
-            numerator, denominator = map(int, videoJsonData['streams'][0]['avg_frame_rate'].split('/'))
+            numerator, denominator = map(int, videoJsonData["streams"][0]["avg_frame_rate"].split("/"))
+
             try:
                 framerate = numerator / denominator
 
@@ -86,10 +87,10 @@ def getFileInfo(filePath, mixAudio):
                 fileInfo["audioStreams"] += 1
 
         if fileInfo["audioStreams"] > 0:
-            fileInfo["audioChannels"] = audioJsonData['streams'][0]["channels"]
-            fileInfo["audioCodec"] = audioJsonData['streams'][0]["codec_name"]
-            fileInfo["audioDuration"] = float(audioJsonData['format']["duration"])
-            fileInfo["numberOfAudioPackets"] = int(audioJsonData['streams'][0]['nb_read_packets'])
+            fileInfo["audioChannels"] = audioJsonData["streams"][0]["channels"]
+            fileInfo["audioCodec"] = audioJsonData["streams"][0]["codec_name"]
+            fileInfo["audioDuration"] = float(audioJsonData["format"]["duration"])
+            fileInfo["numberOfAudioPackets"] = int(audioJsonData["streams"][0]["nb_read_packets"])
 
             if mixAudio == True:
                 streams = "a"
