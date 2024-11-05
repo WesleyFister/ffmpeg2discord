@@ -11,7 +11,6 @@ import utils
 import sys
 # TODO
 # Fix bitrate overshoot and guarantee the video is below the size limit
-# Remove Fastest, Slow and Slowest options
 # Catch any errors with ffmpeg or ffprobe
 # Make trimming video easier to do
 # Clean up code and make it more readable
@@ -127,7 +126,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
                 return tool
                 
             except FileNotFoundError:
-                QMessageBox.warning(self.window, 'Warning', f"\"{tool}\" is not installed or not found in the system's PATH.")
+                QMessageBox.warning(self.window, "Warning", f"\"{tool}\" is not installed or not found in the system's PATH.")
                 raise FileNotFoundError(f"{tool} is not installed or not found in the system's PATH.")
 
     def confirm(self):
@@ -145,19 +144,19 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
             audioFormat = self.comboBox_3.currentText()
             videoFormat = self.comboBox_4.currentText()
             args = {
-                    'filePathList': self.filePathList,
-                    'mixAudio': self.mixAudio,
-                    'noAudio': self.noAudio,
-                    'normalizezAudio': self.normalizezAudio,
-                    'startTime': self.startTime,
-                    'endTime': self.endTime,
-                    'targetFileSize': targetFileSize,
-                    'ffmpeg': ffmpeg,
-                    'ffprobe': ffprobe,
-                    'jpegoptim': jpegoptim,
-                    'imageFormat': imageFormat,
-                    'audioFormat': audioFormat,
-                    'videoFormat': videoFormat
+                "filePathList": self.filePathList,
+                "mixAudio": self.mixAudio,
+                "noAudio": self.noAudio,
+                "normalizezAudio": self.normalizezAudio,
+                "startTime": self.startTime,
+                "endTime": self.endTime,
+                "targetFileSize": targetFileSize,
+                "ffmpeg": ffmpeg,
+                "ffprobe": ffprobe,
+                "jpegoptim": jpegoptim,
+                "imageFormat": imageFormat,
+                "audioFormat": audioFormat,
+                "videoFormat": videoFormat
             }
             self.arguments.emit(args)
             
