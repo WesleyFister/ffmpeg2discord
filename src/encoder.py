@@ -223,7 +223,16 @@ class encode(QThread):
 
         ffmpegCommand.extend(["-vf", "scale='trunc(oh*a/2)*2:{}':flags=bicubic,format=yuv420p".format(height)])
 
-        outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_" + self.videoFormat + "." + extentsion
+        if self.videoFormat == "MP4 (H.264)":
+            videoCodec = "H.264"
+
+        elif self.videoFormat == "WEBM (VP9)":
+            videoCodec = "VP9"
+
+        elif self.videoFormat == "WEBM (AV1)":
+            videoCodec = "AV1"
+
+        outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_" + videoCodec + "." + extentsion
 
         ffmpegCommand.extend(["-map", "0:v", "-map_metadata", "-1", "-map_chapters", "-1", "-avoid_negative_ts", "make_zero", "-b:v", str(videoBitrate)])
 
