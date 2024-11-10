@@ -82,17 +82,17 @@ class encode(QThread):
             if audioOnly == True:
                 if self.audioFormat == "WEBM (Video)":
                     containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
-                    containerpacketOverhead = 48 * 8    # MKV seems to use ~36 bytes per audio packet and ~12 per video packet
+                    containerpacketOverhead = 64 * 8    # MKV seems to use ~52 bytes per audio packet and ~12 per video packet
                     mult = 0.95
 
                 elif self.audioFormat == "WEBM":
                     containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
-                    containerpacketOverhead = 36 * 8    # MKV seems to use ~36 bytes per audio packet
+                    containerpacketOverhead = 52 * 8    # MKV seems to use ~52 bytes per audio packet
                     mult = 0.95
 
                 elif self.audioFormat == "OGG":
                     containerConstOverhead = 1024 * 8   # OGG seems to use ~624 bytes however leaning on the safe side
-                    containerpacketOverhead = 10 * 8    # OGG seems to use ~10 bytes per packet
+                    containerpacketOverhead = 16 * 8    # OGG seems to use ~16 bytes per packet
                     mult = 0.95
 
                 audioOverhead = (containerpacketOverhead * fileInfo["numberOfAudioPackets"]) + containerConstOverhead
@@ -274,7 +274,7 @@ class encode(QThread):
 
         return outputFile
 
-    def encodeAudio(self, file, fileInfo, container=None, audioCodec=None, audioOnly=True):
+    def encodeAudio(self, file, fileInfo, container=None, audioCodec=None, audioOnly=True, mult=1.0):
         trimFlags, duration = self.calculateDuration(fileInfo["audioDuration"])
         encodeAudioCommand = [self.ffmpeg]
         if trimFlags != None:
@@ -303,6 +303,8 @@ class encode(QThread):
             outputFile += container
 
             audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=True, videoOnly=False, audioPath=None)
+            print(audioBitrate)
+            audioBitrate = int(int(audioBitrate) * mult)
 
         else:
             outputFile = os.getcwd() + "/" + fileInfo["fileName"] + os.urandom(8).hex() + "."
@@ -352,6 +354,15 @@ class encode(QThread):
             self.updateProgressBar.emit(progress)
             print(f"Encoding audio: {progress:.2f}/100", end="\r")
         print()
+
+        # Attempts to re-encode audio with a lower bitrate due to the fact that targeting a specific file size for audio is highly inaccurate.
+        if (os.path.getsize(outputFile) * 8) > self.targetFileSize:
+            if audioBitrate < 10000:
+                return "bitrateLowError"
+
+            else:
+                mult -= 0.05
+                self.encodeAudio(file, fileInfo, container, audioCodec, audioOnly, mult)
 
         return outputFile
 
