@@ -8,8 +8,9 @@ import os
 
 
 def cleanUp(logFile, audioPath, audioExists): # Delete temporary files.
-    if os.path.exists(audioPath) and audioExists == True:
-        os.remove(audioPath)
+    if audioExists == True:
+        if os.path.exists(audioPath):
+            os.remove(audioPath)
 
     for file in os.listdir("."):
         if os.path.isfile(os.path.join(".", file)) and logFile in file:

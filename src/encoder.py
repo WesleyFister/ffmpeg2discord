@@ -76,20 +76,27 @@ class encode(QThread):
             mult = 0.96
 
         elif self.videoFormat == "WEBM (AV1)":
-            mult = 0.95
+            mult = 0.97
         
         if videoOnly == False:
             if audioOnly == True:
                 if self.audioFormat == "WEBM (Video)":
-                    audioOverhead = int(duration * 3282)
+                    containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
+                    containerpacketOverhead = 48 * 8    # MKV seems to use ~36 bytes per audio packet and ~12 per video packet
+                    mult = 0.95
 
                 elif self.audioFormat == "WEBM":
-                    audioOverhead = int(duration * 3072)
-                
-                elif self.audioFormat == "OGG":
-                    audioOverhead = int(duration * 640)
+                    containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
+                    containerpacketOverhead = 36 * 8    # MKV seems to use ~36 bytes per audio packet
+                    mult = 0.95
 
-                audioBitrate = int(((self.targetFileSize - audioOverhead) / duration))
+                elif self.audioFormat == "OGG":
+                    containerConstOverhead = 1024 * 8   # OGG seems to use ~624 bytes however leaning on the safe side
+                    containerpacketOverhead = 10 * 8    # OGG seems to use ~10 bytes per packet
+                    mult = 0.95
+
+                audioOverhead = (containerpacketOverhead * fileInfo["numberOfAudioPackets"]) + containerConstOverhead
+                audioBitrate = int(((self.targetFileSize - audioOverhead) / duration) * mult)
                 upperBound = 512000 # Anything higher than 512kbps is unsupported by Opus
 
             elif audioOnly == False:
@@ -291,8 +298,11 @@ class encode(QThread):
             elif self.audioFormat == "OGG":
                 audioCodec = "libopus"
                 container = "ogg"
+                encodeAudioCommand.extend(["-vn"])
             
             outputFile += container
+
+            audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=True, videoOnly=False, audioPath=None)
 
         else:
             outputFile = os.getcwd() + "/" + fileInfo["fileName"] + os.urandom(8).hex() + "."
@@ -300,7 +310,8 @@ class encode(QThread):
             encodeAudioCommand.extend(["-vn"])
             outputFile += container # The audio file should use the same container format as the video to get an accurate idea on the file size. This is because Matroska has a higher muxing overhead for audio than something like Opus.
             
-        audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=False, videoOnly=False, audioPath=None)
+            audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=False, videoOnly=False, audioPath=None)
+
         if audioBitrate == "copy":
             encodeAudioCommand.extend(["-c:a", str(audioBitrate)])
 
@@ -308,10 +319,11 @@ class encode(QThread):
             encodeAudioCommand.extend(["-b:a", str(audioBitrate), "-c:a", audioCodec])
 
         if fileInfo["audioChannels"] >= 2 and audioBitrate != "copy":
-            encodeAudioCommand.extend(["-ac", "2",])
-
             if int(audioBitrate) < 24000: # 24kbps is arbitary
                 encodeAudioCommand.extend(["-ac", "1",])
+
+            else:
+                encodeAudioCommand.extend(["-ac", "2",])
 
         if self.normalizezAudio == True and (self.mixAudio == True and fileInfo["audioStreams"] > 1):
             encodeAudioCommand.extend(["-filter_complex", f"loudnorm,amerge=inputs={fileInfo['audioStreams']}[a]", "-map", "[a]"]) # Normalizes the first audio track only?
