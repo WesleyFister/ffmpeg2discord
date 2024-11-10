@@ -16,10 +16,10 @@ class encode(QThread):
     updateLabel_2 = pyqtSignal(list)
     updateLabel_6 = pyqtSignal(str)
     updateProgressBar = pyqtSignal(float)
-    
+
     def __init__(self):
         super().__init__()
-    
+
     # Method to pass data to the encode thread
     def passData(self, args):
         self.filePathList = args["filePathList"]
@@ -64,7 +64,7 @@ class encode(QThread):
         if container == "mp4":
             containerConstOverhead = 1024 * 8
             containerpacketOverhead = 12 * 8
-        
+
         elif container == "webm":
             containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
             containerpacketOverhead = 12 * 8    # MKV seems to use ~6.25 to 9 bytes per packet however leaning on the safe side
@@ -77,8 +77,9 @@ class encode(QThread):
 
         elif self.videoFormat == "WEBM (AV1)":
             mult = 0.97
-        
+
         if videoOnly == False:
+            # Only encoding audio
             if audioOnly == True:
                 if self.audioFormat == "WEBM (Video)":
                     containerConstOverhead = 1024 * 8   # MKV seems to use ~624 bytes however leaning on the safe side
@@ -99,6 +100,7 @@ class encode(QThread):
                 audioBitrate = int(((self.targetFileSize - audioOverhead) / duration) * mult)
                 upperBound = 512000 # Anything higher than 512kbps is unsupported by Opus
 
+            # Only encoding audio to be used in a video
             elif audioOnly == False:
                 audioOverhead = containerpacketOverhead * fileInfo["numberOfAudioPackets"] + containerConstOverhead
                 audioBitrate = int((((self.targetFileSize - audioOverhead) / 10) / duration) * mult) # 10 is arbitrary. It ensures that 90% of the file size is used for video, and 10% is used for audio
@@ -125,6 +127,7 @@ class encode(QThread):
 
             return audioBitrate
 
+        # Only encoding video
         elif videoOnly == True:
             if audioPath == None:
                 audioPath = 0
@@ -145,6 +148,7 @@ class encode(QThread):
 
         print("Video length:", fileInfo["videoLength"])
 
+        # Options for each video format.
         if self.videoFormat == "MP4 (H.264)":
             codec_flags = ["-preset", "veryslow", "-aq-mode", "3", "-c:v", "libx264"]
             container = "mp4"
@@ -163,12 +167,14 @@ class encode(QThread):
             extentsion = "webm"
             audioCodec = "libopus"
 
+        # Check if the user wants to remove all audio tracks or if audio exists at all in the original file.
         if self.noAudio == True or fileInfo["audioStreams"] == 0:
             audioExists = False
             audioPath = None
 
             ffmpegCommand.extend(["-an"])
 
+        # Otherwise encode audio seperately from video.
         else:
             audioPath = self.encodeAudio(filePath, fileInfo, container, audioCodec, audioOnly=False)
 
@@ -178,6 +184,7 @@ class encode(QThread):
             ffmpegCommand.extend(codec_flags)
 
         videoBitrate = self.calculateBitrate(fileInfo, container, fileInfo["videoLength"], audioCodec, audioOnly=False, videoOnly=True, audioPath=audioPath)
+        # videoBitrate can't be negative.
         if videoBitrate <= 0:
             return "bitrateLowError"
 
@@ -269,7 +276,7 @@ class encode(QThread):
         if self.running == False:
             print("Operation was canceled by user")
             utils.cleanUp(logFile, audioPath, audioExists)
-        
+
         utils.cleanUp(logFile, audioPath, audioExists)
 
         return outputFile
@@ -284,7 +291,7 @@ class encode(QThread):
 
         if audioOnly == True:
             outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord" + "."
-            
+
             if self.audioFormat == "WEBM (Video)":
                 audioCodec = "libopus"
                 container = "webm"
@@ -294,12 +301,12 @@ class encode(QThread):
                 audioCodec = "libopus"
                 container = "webm"
                 encodeAudioCommand.extend(["-vn"])
-            
+
             elif self.audioFormat == "OGG":
                 audioCodec = "libopus"
                 container = "ogg"
                 encodeAudioCommand.extend(["-vn"])
-            
+
             outputFile += container
 
             audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=True, videoOnly=False, audioPath=None)
@@ -311,7 +318,7 @@ class encode(QThread):
 
             encodeAudioCommand.extend(["-vn"])
             outputFile += container # The audio file should use the same container format as the video to get an accurate idea on the file size. This is because Matroska has a higher muxing overhead for audio than something like Opus.
-            
+
             audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=False, videoOnly=False, audioPath=None)
 
         if audioBitrate == "copy":
@@ -329,18 +336,18 @@ class encode(QThread):
 
         if self.normalizezAudio == True and (self.mixAudio == True and fileInfo["audioStreams"] > 1):
             encodeAudioCommand.extend(["-filter_complex", f"loudnorm,amerge=inputs={fileInfo['audioStreams']}[a]", "-map", "[a]"]) # Normalizes the first audio track only?
-        
+
         elif self.normalizezAudio == True:
             encodeAudioCommand.extend(["-filter_complex", "loudnorm"])
 
         elif self.mixAudio == True and fileInfo["audioStreams"] > 1:
             encodeAudioCommand.extend(["-filter_complex", f"amerge=inputs={fileInfo['audioStreams']}[a]", "-map", "[a]"])
-            
+
         else:
             encodeAudioCommand.extend(["-map", "0:a:0"])
 
         encodeAudioCommand.extend(["-map_metadata", "-1", str(outputFile), "-y"])
-        
+
         for flag in encodeAudioCommand:
             print(flag, end=" ", flush=True)
 
@@ -355,7 +362,7 @@ class encode(QThread):
             print(f"Encoding audio: {progress:.2f}/100", end="\r")
         print()
 
-        # Attempts to re-encode audio with a lower bitrate due to the fact that targeting a specific file size for audio is highly inaccurate.
+        # Upon failure, attempts to re-encode audio with a lower bitrate due to the fact that targeting a specific file size for audio is highly inaccurate.
         if (os.path.getsize(outputFile) * 8) > self.targetFileSize:
             if audioBitrate < 10000:
                 return "bitrateLowError"
@@ -409,7 +416,8 @@ class encode(QThread):
             outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_" + extentsion
             progress = 0
 
-            while True: # Used binary search to find optimial quality value. Not ideal for speed but couldn't find a better way.
+            # Used binary search to find optimial quality value. Not ideal for speed but couldn't find a better way.
+            while True:
                 if self.running == False:
                     break
 
@@ -483,6 +491,7 @@ class encode(QThread):
                 progressPercent2 = 2
                 progressPercent3 = 50
 
+                # If file is video, audio or image and encode respectively.
                 if fileInfo["fileType"] == "video" and fileInfo["videoStreams"] != 0:
                     outputFile = self.encodeVideo(filePath, fileInfo, null, progressPercent, progressPercent2, progressPercent3)
 
@@ -492,6 +501,7 @@ class encode(QThread):
                 elif fileInfo["fileType"] == "image":
                     outputFile = self.encodeImage(filePath, fileInfo)
 
+                # Check if encoding exited successfully.
                 if self.running == True:
                     if os.path.exists(outputFile) == True:
                         if (os.path.getsize(outputFile) * 8) > self.targetFileSize or outputFile == "bitrateLowError":
@@ -505,7 +515,6 @@ class encode(QThread):
                             print("Compression completed successfully!")
                             print(outputFile)
                             self.updateLabel_6.emit("Compression completed successfully!")
-                            self.updateProgressBar.emit(100.00)
                             displayFilePathList[currentIndex] = "<font color='green'>" + displayFilePath + "</font><br>"
                             self.updateLabel_2.emit(displayFilePathList)
 

@@ -21,7 +21,7 @@ import sys
 
 class ffmpeg2discord(Ui_MainWindow, QObject):
     arguments = pyqtSignal(dict)
-    
+
     def __init__(self, window):
         super().__init__()
         self.filePathList = ""
@@ -43,7 +43,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.label_2.setVisible(True)
         self.lineEdit.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])"))) ## Only allow time in HH:MM:SS.ms. It works but it is annoying to use.
         self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("([0-5][0-9]):([0-5][0-9]):([0-5][0-9]).([0-9][0-9])")))
-        self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow positive numbers starting from 1.
+        self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow whole positive numbers starting from 1.
         self.progressBar.setMaximum(10000) # setting maximum value for 2 decimal points
         self.progressBar.setFormat("%.02f %%" % 0)
         self.pushButton.clicked.connect(self.fileOpen)
@@ -74,6 +74,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.progressBar.setValue(int(data * 100))
         self.progressBar.setFormat("%.02f %%" % data) 
 
+    # Get list of user selected files.
     def fileOpen(self):
         file_dialog = QFileDialog()
         file_dialog.setFileMode(QFileDialog.ExistingFiles)
@@ -81,6 +82,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         file_dialog.exec_()
         self.filePathList = file_dialog.selectedFiles()
         
+        # Display selected files in GUI.
         videos = ""
         for video in self.filePathList:
             videos += video + "\n"
@@ -88,7 +90,8 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.label_2.setVisible(True)
         self.label.setText("0/" + str(len(self.filePathList)))
         self.label.setVisible(True)
-        
+
+    # Mix audio.
     def checkboxToggled(self):
         if self.checkBox.isChecked():
             self.mixAudio = True
@@ -97,12 +100,17 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         else:
             self.mixAudio = False
 
+    # Remove audio.
     def checkbox_2Toggled(self):
         if self.checkBox_2.isChecked():
             self.noAudio = True
             self.checkBox.setChecked(False)
             self.checkBox_3.setChecked(False)
 
+        else:
+            self.noAudio = False
+
+    # Normalize audio.
     def checkbox_3Toggled(self):
         if self.checkBox_3.isChecked():
             self.normalizezAudio = True
@@ -114,7 +122,8 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     def cancel(self):
         self.encode.stop()
         self.encode.wait()
-        
+
+    # Check that the program is in the "tools" directory or installed on the system's path.
     def checkForTools(self, tool):
         try:
             subprocess.check_call(["./tools/" + tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -133,7 +142,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         ffmpeg = self.checkForTools("ffmpeg")
         ffprobe = self.checkForTools("ffprobe")
         jpegoptim = self.checkForTools("jpegoptim")
-        
+
         if self.filePathList:
             fileSize = self.lineEdit_3.text()
             dataUnit = self.comboBox.currentText()
@@ -160,12 +169,15 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
             }
             self.arguments.emit(args)
             
+            # Connect methods for the encode class to use.
             self.encode.updateLabel.connect(self.updateLabel)
             self.encode.updateLabel_2.connect(self.updateLabel_2)
             self.encode.updateLabel_6.connect(self.updateLabel_6)
             self.encode.updateProgressBar.connect(self.updateProgressBar)
+            
+            # Start the run method in the encode class.
             self.encode.start()
-        
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     MainWindow = QMainWindow()

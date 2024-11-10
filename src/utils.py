@@ -7,6 +7,7 @@ import os
 
 
 
+# Delete temporary files.
 def cleanUp(logFile, audioPath, audioExists): # Delete temporary files.
     if audioExists == True:
         if os.path.exists(audioPath):
@@ -16,6 +17,7 @@ def cleanUp(logFile, audioPath, audioExists): # Delete temporary files.
         if os.path.isfile(os.path.join(".", file)) and logFile in file:
             os.remove(file)
 
+# Converts HH:MM:SS.ms time to seconds.
 def convertTimeToSeconds(timeStr):
     timeStr = timeStr.split(":")
     while len(timeStr) < 3:
@@ -25,7 +27,8 @@ def convertTimeToSeconds(timeStr):
 
     return totalSeconds
 
-def createNoWindow(): # Passes argument to subprocess calls to not create a terminal window when running a command on Windows systems
+# Passes argument to subprocess calls to not create a terminal window when running a command on Windows systems
+def createNoWindow():
     kwargs = {}
     
     if system() == "Windows":
@@ -33,7 +36,8 @@ def createNoWindow(): # Passes argument to subprocess calls to not create a term
         
     return kwargs
 
-def mimeType(filePath):
+# Returns MIME type as a / seperated string. I.e. fileType is "video" and fileFormat is "mp4".
+def getMimeType(filePath):
     mimeType = mimetypes.guess_type(filePath)
     mimeType = mimeType[0]
     if mimeType == None:
@@ -45,10 +49,11 @@ def mimeType(filePath):
 
     return fileType, fileFormat
 
+# Using FFprobe to get information on the file return it as a dictionary.
 def getFileInfo(filePath, mixAudio):
     fileInfo = {}
     
-    fileInfo["fileType"], fileInfo["fileFormat"] = mimeType(filePath)
+    fileInfo["fileType"], fileInfo["fileFormat"] = getMimeType(filePath)
     dirName, file = os.path.split(filePath)
     fileInfo["fileName"], fileInfo["fileExtension"] = os.path.splitext(file)
     fileInfo["dirName"] = dirName + "/"
@@ -59,6 +64,7 @@ def getFileInfo(filePath, mixAudio):
         videoJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v", "-count_packets", filePath], **createNoWindow())
         videoJsonData = json.loads(videoJsonData)
 
+        # Check for number of video streams.
         for stream in videoJsonData["streams"]:
             if stream["codec_type"]:
                 fileInfo["videoStreams"] += 1
@@ -72,6 +78,7 @@ def getFileInfo(filePath, mixAudio):
 
             numerator, denominator = map(int, videoJsonData["streams"][0]["avg_frame_rate"].split("/"))
 
+            # Audio with embeded album art will return 1 over 0 and error out.
             try:
                 framerate = numerator / denominator
 
@@ -83,6 +90,7 @@ def getFileInfo(filePath, mixAudio):
         audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a", "-count_packets", filePath], **createNoWindow())
         audioJsonData = json.loads(audioJsonData)
 
+        # Check for number of audio streams.
         for stream in audioJsonData["streams"]:
             if stream["codec_type"]:
                 fileInfo["audioStreams"] += 1
@@ -114,7 +122,8 @@ def calculateTargetFileSize(fileSize, dataUnit):
     mib = 8388608
     mb = 8000000
 
-    if fileSize == "": # If the user inputs nothing.
+    # If the user inputs nothing.
+    if fileSize == "":
         fileSize = 10 # Discord Default.
 
     else:
