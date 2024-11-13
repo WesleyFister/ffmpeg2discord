@@ -456,6 +456,28 @@ class encode(QThread):
             shutil.move(tempFilePath, outputFile)
             return outputFile
 
+    # Method to check if encoding exited successfully and to display any errors.
+    def checkFile(self, outputFile, displayFilePathList, displayFilePath, currentIndex):
+        def displayLogs(log, gui_logs, color):
+            print(log)
+            print(outputFile)
+            self.updateLabel_6.emit(gui_logs)
+            displayFilePathList[currentIndex] = f"<font color={color}>" + displayFilePath + "</font><br>"
+            self.updateLabel_2.emit(displayFilePathList)
+
+        if outputFile == "bitrateLowError":
+            displayLogs("Error: bitrate is too low to compress the file.", "Bitrate is too low.", "red")
+
+        elif os.path.exists(outputFile) == False:
+            displayLogs("Error: file does not exist.", "Unable to locate file.", "red")
+
+        elif os.path.exists(outputFile) == True and os.path.getsize(outputFile) * 8 > self.targetFileSize:
+            displayLogs("Error: compression failed to reduce file size below the maximum allowed limit.", "Outputted file is too large.", "red")
+
+        else:
+            print(outputFile, displayFilePathList, currentIndex)
+            displayLogs("Compression completed successfully!", "Compression completed successfully!", "green")
+
     def run(self):
         videoProgress = 0
         self.running = True
@@ -503,20 +525,7 @@ class encode(QThread):
 
                 # Check if encoding exited successfully.
                 if self.running == True:
-                    if os.path.exists(outputFile) == True:
-                        if (os.path.getsize(outputFile) * 8) > self.targetFileSize or outputFile == "bitrateLowError":
-                            print("Compression failed.")
-                            print(outputFile)
-                            self.updateLabel_6.emit("Compression failed.")
-                            displayFilePathList[currentIndex] = "<font color='red'>" + displayFilePath + "</font><br>"
-                            self.updateLabel_2.emit(displayFilePathList)
-
-                        else:
-                            print("Compression completed successfully!")
-                            print(outputFile)
-                            self.updateLabel_6.emit("Compression completed successfully!")
-                            displayFilePathList[currentIndex] = "<font color='green'>" + displayFilePath + "</font><br>"
-                            self.updateLabel_2.emit(displayFilePathList)
+                    self.checkFile(outputFile, displayFilePathList, displayFilePath, currentIndex)
 
                 else:
                     break
