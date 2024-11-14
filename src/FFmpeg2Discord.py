@@ -1,9 +1,6 @@
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QRegExp
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtGui import QPalette, QColor
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QRegExp, Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog
+from PyQt5.QtGui import QRegExpValidator, QPalette, QColor
 from ui import Ui_MainWindow
 from encoder import encode
 import subprocess

@@ -1,11 +1,8 @@
 from PyQt5.QtCore import QThread, pyqtSignal, QRunnable, pyqtSlot
 from ffmpeg_progress_yield import FfmpegProgress
-from platform import system
 import utils
 import subprocess
-import mimetypes
 import shutil
-import json
 import sys
 import os
 
@@ -177,6 +174,8 @@ class encode(QThread):
         # Otherwise encode audio seperately from video.
         else:
             audioPath = self.encodeAudio(filePath, fileInfo, container, audioCodec, audioOnly=False)
+            if audioPath == "error":
+                return "error"
 
             audioExists = True
 
@@ -265,17 +264,22 @@ class encode(QThread):
                 print(f"Encoding video: Pass {twoPass}: {progress:.2f}/100", end="\r")
             print()
 
-        self.updateLabel_6.emit("Compressing video...")
-        logFile = os.urandom(8).hex()
-        ffmpeg2pass(flags=["-pass", "1", "-f", container, "-passlogfile", logFile, null, "-y"], twoPass=1, progressPercent=progressPercent, progressPercent3=0)
-        if self.running == False:
-            print("Operation was canceled by user")
-            utils.cleanUp(logFile, audioPath, audioExists)
+        try:
+            self.updateLabel_6.emit("Compressing video...")
+            logFile = os.urandom(8).hex()
+            ffmpeg2pass(flags=["-pass", "1", "-f", container, "-passlogfile", logFile, null, "-y"], twoPass=1, progressPercent=progressPercent, progressPercent3=0)
+            if self.running == False:
+                print("Operation was canceled by user")
+                utils.cleanUp(logFile, audioPath, audioExists)
 
-        ffmpeg2pass(flags=["-pass", "2", "-f", container, "-passlogfile", logFile, outputFile, "-y"], twoPass=2, progressPercent=progressPercent2, progressPercent3=progressPercent3)
-        if self.running == False:
-            print("Operation was canceled by user")
-            utils.cleanUp(logFile, audioPath, audioExists)
+            ffmpeg2pass(flags=["-pass", "2", "-f", container, "-passlogfile", logFile, outputFile, "-y"], twoPass=2, progressPercent=progressPercent2, progressPercent3=progressPercent3)
+            if self.running == False:
+                print("Operation was canceled by user")
+                utils.cleanUp(logFile, audioPath, audioExists)
+
+        except Exception as e:
+            print(f"General error: {e}")
+            return "error"
 
         utils.cleanUp(logFile, audioPath, audioExists)
 
@@ -351,16 +355,21 @@ class encode(QThread):
         for flag in encodeAudioCommand:
             print(flag, end=" ", flush=True)
 
-        self.updateLabel_6.emit("Compressing audio...")
-        ff = FfmpegProgress(encodeAudioCommand)
-        for progress in ff.run_command_with_progress(duration_override=duration, **utils.createNoWindow()):
-            if self.running == False:
-                ff.quit()
-                break
+        try:
+            self.updateLabel_6.emit("Compressing audio...")
+            ff = FfmpegProgress(encodeAudioCommand)
+            for progress in ff.run_command_with_progress(duration_override=duration, **utils.createNoWindow()):
+                if self.running == False:
+                    ff.quit()
+                    break
 
-            self.updateProgressBar.emit(progress)
-            print(f"Encoding audio: {progress:.2f}/100", end="\r")
-        print()
+                self.updateProgressBar.emit(progress)
+                print(f"Encoding audio: {progress:.2f}/100", end="\r")
+            print()
+
+        except Exception as e:
+            print(f"General error: {e}")
+            return "error"
 
         # Upon failure, attempts to re-encode audio with a lower bitrate due to the fact that targeting a specific file size for audio is highly inaccurate.
         if (os.path.getsize(outputFile) * 8) > self.targetFileSize:
@@ -398,17 +407,23 @@ class encode(QThread):
 
         self.updateLabel_6.emit("Compressing image...")
         print("Attempting to losslessly compress image below the size limit")
-        if fileInfo["fileFormat"] == "jpeg":
-            shutil.copy(filePath, tempFilePath) # jpegoptim is unable to change the output file name so shutil must handle it.
-            outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_Lossless.jpg"
-            subprocess.run([self.jpegoptim, "--quiet", "--strip-all", tempFilePath], **utils.createNoWindow())
+        
+        try:
+            if fileInfo["fileFormat"] == "jpeg":
+                shutil.copy(filePath, tempFilePath) # jpegoptim is unable to change the output file name so shutil must handle it.
+                outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_Lossless.jpg"
+                subprocess.run([self.jpegoptim, "--quiet", "--strip-all", tempFilePath], **utils.createNoWindow())
 
-        elif fileInfo["fileFormat"] != "jpeg" and self.imageFormat == "WEBP":
-            outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_Lossless_" + extentsion
-            subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", "6", "-c:v", encoder, "-lossless", "1", "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
+            elif fileInfo["fileFormat"] != "jpeg" and self.imageFormat == "WEBP":
+                outputFile = fileInfo["dirName"] + fileInfo["fileName"] + "_FFmpeg2Discord_Lossless_" + extentsion
+                subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", "6", "-c:v", encoder, "-lossless", "1", "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
 
-        else:
-            shutil.copy(filePath, tempFilePath)
+            else:
+                shutil.copy(filePath, tempFilePath)
+
+        except Exception as e:
+            print(f"Failed to perform initial image compression: {e}")
+            return "error"
 
         if (os.path.getsize(tempFilePath) * 8) > self.targetFileSize:
             print("Lossless compression failed")
@@ -417,66 +432,78 @@ class encode(QThread):
             progress = 0
 
             # Used binary search to find optimial quality value. Not ideal for speed but couldn't find a better way.
-            while True:
-                if self.running == False:
-                    break
+            try:
+                while True:
+                    if self.running == False:
+                        break
 
-                print(f"Quality set to {middle}")
-                previousMiddle = middle
+                    print(f"Quality set to {middle}")
+                    previousMiddle = middle
 
-                subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", "6", "-c:v", encoder, "-q:v", str(middle), "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
+                    subprocess.run([self.ffmpeg, "-hide_banner", "-v", "error", "-i", filePath, "-map_metadata", "-1", "-compression_level", "6", "-c:v", encoder, "-q:v", str(middle), "-f", container, tempFilePath, "-y"], **utils.createNoWindow())
 
-                tempFileSize = os.path.getsize(tempFilePath) * 8
-                print(tempFileSize)
-                if tempFileSize > self.targetFileSize:
-                    if self.imageFormat == "WEBP":
-                        high = middle - 1
+                    tempFileSize = os.path.getsize(tempFilePath) * 8
+                    print(tempFileSize)
+                    if tempFileSize > self.targetFileSize:
+                        if self.imageFormat == "WEBP":
+                            high = middle - 1
 
-                    elif self.imageFormat == "JPG":
-                        low = middle + 2 # Increased by two because middle always rounds down and for JPG lower means higher file size which leaves the file too big.
+                        elif self.imageFormat == "JPG":
+                            low = middle + 2 # Increased by two because middle always rounds down and for JPG lower means higher file size which leaves the file too big.
 
-                else:
-                    if self.imageFormat == "WEBP":
-                        low = middle + 1
+                    else:
+                        if self.imageFormat == "WEBP":
+                            low = middle + 1
 
-                    elif self.imageFormat == "JPG":
-                        high = middle - 1
+                        elif self.imageFormat == "JPG":
+                            high = middle - 1
 
-                middle = (high + low) // 2
-                if middle < 0: # Prevents the quality value from going below zero which would cause an error in ffmpeg.
-                    middle = 0
+                    middle = (high + low) // 2
+                    if middle < 0: # Prevents the quality value from going below zero which would cause an error in ffmpeg.
+                        middle = 0
 
-                progress += percent
-                self.updateProgressBar.emit(progress)
+                    progress += percent
+                    self.updateProgressBar.emit(progress)
 
-                if previousMiddle == middle: # The binary search will converge on the optimal quality value. Once this happens the next middle value will be the same as the one before it.
-                    break
+                    if previousMiddle == middle: # The binary search will converge on the optimal quality value. Once this happens the next middle value will be the same as the one before it.
+                        break
+
+            except Exception as e:
+                print(f"Failed to encode image with quality {middle}: {e}")
+                return "error"
 
         if self.running == True:
-            shutil.move(tempFilePath, outputFile)
-            return outputFile
+            try:
+                shutil.move(tempFilePath, outputFile)
+                return outputFile
+
+            except Exception as e:
+                print(f"Failed to move file: {e}")
+                return "error"
 
     # Method to check if encoding exited successfully and to display any errors.
     def checkFile(self, outputFile, displayFilePathList, displayFilePath, currentIndex):
-        def displayLogs(log, gui_logs, color):
+        def displayLogs(file, log, gui_log, color):
             print(log)
-            print(outputFile)
-            self.updateLabel_6.emit(gui_logs)
+            print(file)
+            self.updateLabel_6.emit(gui_log)
             displayFilePathList[currentIndex] = f"<font color={color}>" + displayFilePath + "</font><br>"
             self.updateLabel_2.emit(displayFilePathList)
 
-        if outputFile == "bitrateLowError":
-            displayLogs("Error: bitrate is too low to compress the file.", "Bitrate is too low.", "red")
+        if outputFile == "error":
+            displayLogs(displayFilePath, "An error has been caught with file", "Error with file", "red")
+
+        elif outputFile == "bitrateLowError":
+            displayLogs(displayFilePath, "Error: bitrate is too low to compress the file", "Bitrate is too low", "red")
 
         elif os.path.exists(outputFile) == False:
-            displayLogs("Error: file does not exist.", "Unable to locate file.", "red")
+            displayLogs(outputFile, "Error: file does not exist", "Unable to locate file", "red")
 
         elif os.path.exists(outputFile) == True and os.path.getsize(outputFile) * 8 > self.targetFileSize:
-            displayLogs("Error: compression failed to reduce file size below the maximum allowed limit.", "Outputted file is too large.", "red")
+            displayLogs(outputFile, "Error: compression failed to reduce file size below the maximum allowed limit", "Outputted file is too large", "red")
 
         else:
-            print(outputFile, displayFilePathList, currentIndex)
-            displayLogs("Compression completed successfully!", "Compression completed successfully!", "green")
+            displayLogs(outputFile, "Compression completed successfully!", "Compression completed successfully!", "green")
 
     def run(self):
         videoProgress = 0
@@ -495,8 +522,7 @@ class encode(QThread):
 
         for filePath in self.filePathList:
             if filePath:
-                fileInfo = utils.getFileInfo(filePath, self.mixAudio)
-                print(fileInfo["fileType"])
+                fileInfo = utils.getFileInfo(filePath, self.ffprobe, self.mixAudio)
 
                 # Update GUI.
                 numOfVideos = len(self.filePathList)
@@ -514,14 +540,22 @@ class encode(QThread):
                 progressPercent3 = 50
 
                 # If file is video, audio or image and encode respectively.
-                if fileInfo["fileType"] == "video" and fileInfo["videoStreams"] != 0:
-                    outputFile = self.encodeVideo(filePath, fileInfo, null, progressPercent, progressPercent2, progressPercent3)
+                try:
+                    if fileInfo["fileType"] == "video" and fileInfo["videoStreams"] != 0:
+                        outputFile = self.encodeVideo(filePath, fileInfo, null, progressPercent, progressPercent2, progressPercent3)
 
-                elif fileInfo["fileType"] == "audio" or (fileInfo["fileType"] == "video" and fileInfo["videoStreams"] == 0):                            
-                    outputFile = self.encodeAudio(filePath, fileInfo, audioOnly=True)
+                    elif fileInfo["fileType"] == "audio" or (fileInfo["fileType"] == "video" and fileInfo["videoStreams"] == 0):                            
+                        outputFile = self.encodeAudio(filePath, fileInfo, audioOnly=True)
 
-                elif fileInfo["fileType"] == "image":
-                    outputFile = self.encodeImage(filePath, fileInfo)
+                    elif fileInfo["fileType"] == "image":
+                        outputFile = self.encodeImage(filePath, fileInfo)
+
+                    elif fileInfo == "error":
+                        outputFile = "error"
+                
+                except Exception as e:
+                    print(f"Failed to encode image {filePath}: {e}")
+                    outputFile = "error"
 
                 # Check if encoding exited successfully.
                 if self.running == True:

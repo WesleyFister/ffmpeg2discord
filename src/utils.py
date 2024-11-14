@@ -9,13 +9,17 @@ import os
 
 # Delete temporary files.
 def cleanUp(logFile, audioPath, audioExists): # Delete temporary files.
-    if audioExists == True:
-        if os.path.exists(audioPath):
-            os.remove(audioPath)
+    try:
+        if audioExists == True:
+            if os.path.exists(audioPath):
+                os.remove(audioPath)
 
-    for file in os.listdir("."):
-        if os.path.isfile(os.path.join(".", file)) and logFile in file:
-            os.remove(file)
+        for file in os.listdir("."):
+            if os.path.isfile(os.path.join(".", file)) and logFile in file:
+                os.remove(file)
+    
+    except Exception as e:
+        print(f"General error: {e}")
 
 # Converts HH:MM:SS.ms time to seconds.
 def convertTimeToSeconds(timeStr):
@@ -38,84 +42,97 @@ def createNoWindow():
 
 # Returns MIME type as a / seperated string. I.e. fileType is "video" and fileFormat is "mp4".
 def getMimeType(filePath):
-    mimeType = mimetypes.guess_type(filePath)
-    mimeType = mimeType[0]
-    if mimeType == None:
-        fileType = None
-        fileFormat = None
+    try:
+        mimeType = mimetypes.guess_type(filePath)
+        mimeType = mimeType[0]
+        if mimeType == None:
+            fileType = None
+            fileFormat = None
 
-    else:
-        fileType, fileFormat = mimeType.split("/")
+        else:
+            fileType, fileFormat = mimeType.split("/")
 
-    return fileType, fileFormat
+        return fileType, fileFormat
+
+    except Exception as e:
+        print(f"General error: {e}")
+        return "error", "error"
 
 # Using FFprobe to get information on the file return it as a dictionary.
-def getFileInfo(filePath, mixAudio):
-    fileInfo = {}
-    
-    fileInfo["fileType"], fileInfo["fileFormat"] = getMimeType(filePath)
-    dirName, file = os.path.split(filePath)
-    fileInfo["fileName"], fileInfo["fileExtension"] = os.path.splitext(file)
-    fileInfo["dirName"] = dirName + "/"
+def getFileInfo(filePath, ffprobe, mixAudio):
+    try:
+        fileInfo = {}
+        
+        fileInfo["fileType"], fileInfo["fileFormat"] = getMimeType(filePath)
+        if fileInfo["fileType"] == "error" or fileInfo["fileFormat"] == "error":
+            return "error"
 
-    fileInfo["videoStreams"] = 0
-    fileInfo["audioStreams"] = 0
-    if fileInfo["fileType"] == "audio" or fileInfo["fileType"] == "video":
-        videoJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v", "-count_packets", filePath], **createNoWindow())
-        videoJsonData = json.loads(videoJsonData)
+        dirName, file = os.path.split(filePath)
+        fileInfo["fileName"], fileInfo["fileExtension"] = os.path.splitext(file)
+        fileInfo["dirName"] = dirName + "/"
 
-        # Check for number of video streams.
-        for stream in videoJsonData["streams"]:
-            if stream["codec_type"]:
-                fileInfo["videoStreams"] += 1
+        fileInfo["videoStreams"] = 0
+        fileInfo["audioStreams"] = 0
+        if fileInfo["fileType"] == "audio" or fileInfo["fileType"] == "video":
+            videoJsonData = subprocess.check_output([ffprobe, "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v", "-count_packets", filePath], **createNoWindow())
+            videoJsonData = json.loads(videoJsonData)
 
-        if fileInfo["videoStreams"] > 0:
+            # Check for number of video streams.
+            for stream in videoJsonData["streams"]:
+                if stream["codec_type"]:
+                    fileInfo["videoStreams"] += 1
 
-            fileInfo["videoLength"] = float(videoJsonData["format"]["duration"])
-            fileInfo["width"] = int(videoJsonData["streams"][0]["width"])
-            fileInfo["height"] = int(videoJsonData["streams"][0]["height"])
-            fileInfo["numberOfVideoPackets"] = int(videoJsonData["streams"][0]["nb_read_packets"])
+            if fileInfo["videoStreams"] > 0:
 
-            numerator, denominator = map(int, videoJsonData["streams"][0]["avg_frame_rate"].split("/"))
+                fileInfo["videoLength"] = float(videoJsonData["format"]["duration"])
+                fileInfo["width"] = int(videoJsonData["streams"][0]["width"])
+                fileInfo["height"] = int(videoJsonData["streams"][0]["height"])
+                fileInfo["numberOfVideoPackets"] = int(videoJsonData["streams"][0]["nb_read_packets"])
 
-            # Audio with embeded album art will return 1 over 0 and error out.
-            try:
-                framerate = numerator / denominator
+                numerator, denominator = map(int, videoJsonData["streams"][0]["avg_frame_rate"].split("/"))
 
-            except ZeroDivisionError:
-                framerate = 0
-                
-            fileInfo["framerate"] = framerate
+                # Audio with embeded album art will return 1 over 0 and error out.
+                try:
+                    framerate = numerator / denominator
 
-        audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a", "-count_packets", filePath], **createNoWindow())
-        audioJsonData = json.loads(audioJsonData)
+                except ZeroDivisionError:
+                    framerate = 0
+                    
+                fileInfo["framerate"] = framerate
 
-        # Check for number of audio streams.
-        for stream in audioJsonData["streams"]:
-            if stream["codec_type"]:
-                fileInfo["audioStreams"] += 1
-
-        if fileInfo["audioStreams"] > 0:
-            fileInfo["audioChannels"] = audioJsonData["streams"][0]["channels"]
-            fileInfo["audioCodec"] = audioJsonData["streams"][0]["codec_name"]
-            fileInfo["audioDuration"] = float(audioJsonData["format"]["duration"])
-            fileInfo["numberOfAudioPackets"] = int(audioJsonData["streams"][0]["nb_read_packets"])
-
-            if mixAudio == True:
-                streams = "a"
-
-            else:
-                streams = "a:0"
-
-            audioJsonData = subprocess.check_output(["ffprobe", "-v", "quiet", "-print_format", "json", "-select_streams", streams, "-show_entries", "packet=size", filePath], **createNoWindow())
+            audioJsonData = subprocess.check_output([ffprobe, "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a", "-count_packets", filePath], **createNoWindow())
             audioJsonData = json.loads(audioJsonData)
-            audioSize = 0
-            for audioJsonData in audioJsonData["packets"]:
-                audioSize += int(audioJsonData["size"])
-            
-            fileInfo["audioBitrate"] = int((audioSize * 8) / fileInfo["audioDuration"])
 
-    return fileInfo
+            # Check for number of audio streams.
+            for stream in audioJsonData["streams"]:
+                if stream["codec_type"]:
+                    fileInfo["audioStreams"] += 1
+
+            if fileInfo["audioStreams"] > 0:
+                fileInfo["audioChannels"] = audioJsonData["streams"][0]["channels"]
+                fileInfo["audioCodec"] = audioJsonData["streams"][0]["codec_name"]
+                fileInfo["audioDuration"] = float(audioJsonData["format"]["duration"])
+                fileInfo["numberOfAudioPackets"] = int(audioJsonData["streams"][0]["nb_read_packets"])
+
+                if mixAudio == True:
+                    streams = "a"
+
+                else:
+                    streams = "a:0"
+
+                audioJsonData = subprocess.check_output([ffprobe, "-v", "quiet", "-print_format", "json", "-select_streams", streams, "-show_entries", "packet=size", filePath], **createNoWindow())
+                audioJsonData = json.loads(audioJsonData)
+                audioSize = 0
+                for audioJsonData in audioJsonData["packets"]:
+                    audioSize += int(audioJsonData["size"])
+                
+                fileInfo["audioBitrate"] = int((audioSize * 8) / fileInfo["audioDuration"])
+
+        return fileInfo
+
+    except Exception as e:
+        print(f"General error: {e}")
+        return "error"
 
 def calculateTargetFileSize(fileSize, dataUnit):
     # In bits not bytes.
