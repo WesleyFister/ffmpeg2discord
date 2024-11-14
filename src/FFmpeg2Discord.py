@@ -9,13 +9,6 @@ from encoder import encode
 import subprocess
 import utils
 import sys
-# TODO
-# Fix bitrate overshoot and guarantee the video is below the size limit
-# Catch any errors with ffmpeg or ffprobe
-# Make trimming video easier to do
-# Clean up code and make it more readable
-# Make the GUI scale based on monitor scaling
-# Make the GUI follow dark or white themes
 
 
 
