@@ -73,7 +73,7 @@ class encode(QThread):
             mult = 0.96
 
         elif self.videoFormat == "WEBM (AV1)":
-            mult = 0.97
+            mult = 0.99
 
         if videoOnly == False:
             # Only encoding audio
@@ -159,7 +159,7 @@ class encode(QThread):
             audioCodec = "libopus"
 
         elif self.videoFormat == "WEBM (AV1)":
-            codec_flags = ["-preset", "4", "-c:v", "libsvtav1", "-row-mt", "1"]
+            codec_flags = ["-cpu-used", "6", "-c:v", "libaom-av1", "-row-mt", "1"]
             container = "webm"
             extentsion = "webm"
             audioCodec = "libopus"
