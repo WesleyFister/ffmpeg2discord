@@ -136,6 +136,8 @@ class encode(QThread):
 
     def encodeVideo(self, filePath, fileInfo, null, progressPercent, progressPercent2, progressPercent3):
         trimFlags, fileInfo["videoLength"] = self.calculateDuration(fileInfo["videoLength"])
+        if fileInfo["videoLength"] <= 0:
+            return "negativeDurationError"
 
         ffmpegCommand = [self.ffmpeg]
         if trimFlags != None:
@@ -286,8 +288,12 @@ class encode(QThread):
         return outputFile
 
     def encodeAudio(self, file, fileInfo, container=None, audioCodec=None, audioOnly=True, mult=1.0):
-        trimFlags, duration = self.calculateDuration(fileInfo["audioDuration"])
+        trimFlags, fileInfo["audioDuration"] = self.calculateDuration(fileInfo["audioDuration"])
+        if fileInfo["audioDuration"] <= 0:
+            return "negativeDurationError"
+        
         encodeAudioCommand = [self.ffmpeg]
+        
         if trimFlags != None:
             encodeAudioCommand.extend(trimFlags)
 
@@ -313,7 +319,7 @@ class encode(QThread):
 
             outputFile += container
 
-            audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=True, videoOnly=False, audioPath=None)
+            audioBitrate = self.calculateBitrate(fileInfo, container, fileInfo["audioDuration"], audioCodec, audioOnly=True, videoOnly=False, audioPath=None)
             print(audioBitrate)
             audioBitrate = int(int(audioBitrate) * mult)
 
@@ -323,7 +329,7 @@ class encode(QThread):
             encodeAudioCommand.extend(["-vn"])
             outputFile += container # The audio file should use the same container format as the video to get an accurate idea on the file size. This is because Matroska has a higher muxing overhead for audio than something like Opus.
 
-            audioBitrate = self.calculateBitrate(fileInfo, container, duration, audioCodec, audioOnly=False, videoOnly=False, audioPath=None)
+            audioBitrate = self.calculateBitrate(fileInfo, container, fileInfo["audioDuration"], audioCodec, audioOnly=False, videoOnly=False, audioPath=None)
 
         if audioBitrate == "copy":
             encodeAudioCommand.extend(["-c:a", str(audioBitrate)])
@@ -358,7 +364,7 @@ class encode(QThread):
         try:
             self.updateLabel_6.emit("Compressing audio...")
             ff = FfmpegProgress(encodeAudioCommand)
-            for progress in ff.run_command_with_progress(duration_override=duration, **utils.createNoWindow()):
+            for progress in ff.run_command_with_progress(duration_override=fileInfo["audioDuration"], **utils.createNoWindow()):
                 if self.running == False:
                     ff.quit()
                     break
@@ -492,6 +498,9 @@ class encode(QThread):
 
         if outputFile == "error":
             displayLogs(displayFilePath, "An error has been caught with file", "Error with file", "red")
+
+        elif outputFile == "negativeDurationError":
+            displayLogs(displayFilePath, "Error: duration specified is negative", "Duration specified is negative", "red")
 
         elif outputFile == "bitrateLowError":
             displayLogs(displayFilePath, "Error: bitrate is too low to compress the file", "Bitrate is too low", "red")
