@@ -31,8 +31,8 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.label.setText("0/0")
         self.label.setVisible(True)
         self.label_2.setVisible(True)
-        self.lineEdit.setValidator(QRegExpValidator(QRegExp("^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\.([0-9]{1,2})$"))) ## Only allow time in HH:MM:SS.ms.
-        self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\.([0-9]{1,2})$")))
+        self.lineEdit.setValidator(QRegExpValidator(QRegExp("^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$"))) ## Only allow time in HH:MM:SS.ms.
+        self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$")))
         self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow whole positive numbers starting from 1.
         self.progressBar.setMaximum(10000) # setting maximum value for 2 decimal points
         self.progressBar.setFormat("%.02f %%" % 0)
