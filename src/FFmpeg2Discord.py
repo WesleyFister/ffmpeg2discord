@@ -116,12 +116,12 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     # Check that the program is in the "tools" directory or installed on the system's path.
     def checkForTools(self, tool):
         try:
-            subprocess.check_call(["./tools/" + tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.check_call(["./tools/" + tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **utils.createNoWindow())
             return "./tools/" + tool
             
         except FileNotFoundError:
             try:
-                subprocess.check_call([tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.check_call([tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **utils.createNoWindow())
                 return tool
                 
             except FileNotFoundError:

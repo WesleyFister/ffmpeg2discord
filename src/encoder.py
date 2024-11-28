@@ -225,7 +225,7 @@ class encode(QThread):
         if fileInfo["videoLength"] <= 30:
             filePathBlank =  os.getcwd() + "/" + "blank.mkv"
 
-            command = [self.ffmpeg, "-f", "lavfi", "-i", "color=c=black:s=1920x1080:r=60:d=30", "-c:v", "libx264", filePathBlank, "-y"]
+            command = [self.ffmpeg, "-f", "lavfi", "-i", "color=c=black:s=1920x1080:r=60:d=30", "-c:v", "libx264", "-preset", "ultrafast", filePathBlank, "-y"]
             subprocess.check_output(command, **utils.createNoWindow())
 
             filePathBlankMerged =  os.getcwd() + "/" + fileInfo["fileName"] + "blank.mkv"
@@ -257,7 +257,7 @@ class encode(QThread):
             print()
 
             ff = FfmpegProgress(ffmpegCommand + flags)
-            for progress in ff.run_command_with_progress(duration_override=fileInfo["videoLength"], **utils.createNoWindow()):
+            for progress in ff.run_command_with_progress(utils.createNoWindow(), duration_override=fileInfo["videoLength"]):
                 if self.running == False:
                     ff.quit()
                     break
@@ -364,7 +364,7 @@ class encode(QThread):
         try:
             self.updateLabel_6.emit("Compressing audio...")
             ff = FfmpegProgress(encodeAudioCommand)
-            for progress in ff.run_command_with_progress(duration_override=fileInfo["audioDuration"], **utils.createNoWindow()):
+            for progress in ff.run_command_with_progress(utils.createNoWindow(), duration_override=fileInfo["audioDuration"]):
                 if self.running == False:
                     ff.quit()
                     break
