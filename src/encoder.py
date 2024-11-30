@@ -171,8 +171,6 @@ class encode(QThread):
             audioExists = False
             audioPath = None
 
-            ffmpegCommand.extend(["-an"])
-
         # Otherwise encode audio seperately from video.
         else:
             audioPath = self.encodeAudio(filePath, fileInfo, container, audioCodec, audioOnly=False)
