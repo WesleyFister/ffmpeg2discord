@@ -15,26 +15,15 @@ This program is very CPU intensive and on my i7 8086k it took about 3 minutes to
 
 ### Install
 
-You can either download the standalone binary for your system which contains everything needed to run. Alternatively you can install the dependencies and run the script.
+The easiest way to get up and running is to head over to the releases section and download the respective zip for your operating system. After that all you need to do it double click it!
 
-Install FFmpeg and jpegoptim to your system's path.
+Alternatively you can install the dependencies and run the Python script.
+
+To do so, install FFmpeg and jpegoptim to your system's path.
 
 Then:
 `pip install -r requirements.txt`
 
 ### Build binaries
 
-Windows
-```
-virtualenv FFmpeg2Discord
-.\FFmpeg2Discord\Scripts\activate.ps1
-pip install pyqt5 ffmpeg_progress_yield pyinstaller
-.\FFmpeg2Discord\Scripts\pyinstaller.exe --noconsole --windowed --onedir --contents-directory libraries FFmpeg2Discord.py
-```
-Linux
-```
-virtualenv FFmpeg2Discord
-source FFmpeg2Discord/bin/activate
-pip install pyqt5 ffmpeg_progress_yield pyinstaller
-./FFmpeg2Discord/bin/pyinstaller --onefile FFmpeg2Discord.py
-```
+You can build static binaries with `build-linux.sh` or `build-windows.bat`
