@@ -219,21 +219,6 @@ class encode(QThread):
                 else:
                     height = testHeight
 
-        '''
-        if fileInfo["videoLength"] <= 30:
-            filePathBlank =  os.getcwd() + "/" + "blank.mkv"
-
-            command = [self.ffmpeg, "-f", "lavfi", "-i", "color=c=black:s=1920x1080:r=60:d=30", "-c:v", "libx264", "-preset", "ultrafast", filePathBlank, "-y"]
-            subprocess.check_output(command, **utils.createNoWindow())
-
-            filePathBlankMerged =  os.getcwd() + "/" + fileInfo["fileName"] + "blank.mkv"
-
-            command = [self.ffmpeg, "-i", filePath, "-i", filePathBlank, "-filter_complex", "concat=n=2:v=1:a=0", "-c:v", "libx264", filePathBlankMerged, "-y"]
-            subprocess.check_output(command, **utils.createNoWindow())
-
-            filePath = filePathBlankMerged
-        '''
-
         ffmpegCommand.extend(["-vf", "scale='trunc(oh*a/2)*2:{}':flags=bicubic,format=yuv420p".format(height)])
 
         if self.videoFormat == "MP4 (H.264)":
