@@ -129,8 +129,11 @@ class encode(QThread):
             if audioPath == None:
                 audioPath = 0
 
+            else:
+                audioPath = os.path.getsize(audioPath)
+
             videoOverhead = containerpacketOverhead * fileInfo["numberOfVideoPackets"] + containerConstOverhead
-            videoBitrate = int(((self.targetFileSize - videoOverhead - (os.path.getsize(audioPath) * 8)) / fileInfo["videoLength"]) * mult)
+            videoBitrate = int(((self.targetFileSize - videoOverhead - (audioPath * 8)) / fileInfo["videoLength"]) * mult)
 
             return videoBitrate
 
