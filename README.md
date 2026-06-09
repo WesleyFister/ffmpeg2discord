@@ -1,7 +1,7 @@
 ### FFmpeg2Discord
 Frustrated by manually using ffmpeg to compress videos to get around Discord's 10 MiB file size limit, I wrote a simple graphical Python program to automate the process. This program works for both Windows and Linux systems.
 <p align="center">
-    <img src="https://github.com/user-attachments/assets/ad190c4b-1f1e-450b-b175-6c3ea1cf77fe" width=50% height=50%">
+    <img src="assets/screenshot.png" width=50% height=50%">
 </p>
 
 ### Warning
