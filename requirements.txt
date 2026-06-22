@@ -1,2 +1,2 @@
-PyQt5
-ffmpeg_progress_yield
+PyQt5==5.15.11
+ffmpeg-progress-yield==1.1.3
