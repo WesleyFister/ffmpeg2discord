@@ -1,4 +1,4 @@
-virtualenv venv
+python3 -m venv venv
 .\venv\Scripts\pip install -r requirements.txt
 .\venv\Scripts\pip install pyinstaller
 .\venv\Scripts\pyinstaller.exe --noconsole --onefile .\src\FFmpeg2Discord.py
