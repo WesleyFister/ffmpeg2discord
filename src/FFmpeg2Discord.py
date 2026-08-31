@@ -1,9 +1,9 @@
 import subprocess
 import sys
 
-from PyQt5.QtCore import QObject, QRegExp, pyqtSignal, pyqtSlot
-from PyQt5.QtGui import QRegExpValidator
-from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
+from PyQt6.QtCore import QObject, QRegularExpression, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QRegularExpressionValidator
+from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
 import utils
 from encoder import encode
@@ -33,21 +33,21 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.label.setVisible(True)
         self.label_2.setVisible(True)
         self.lineEdit.setValidator(
-            QRegExpValidator(
-                QRegExp(
+            QRegularExpressionValidator(
+                QRegularExpression(
                     "^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$"
                 )
             )
         )  ## Only allow time in HH:MM:SS.ms.
         self.lineEdit_2.setValidator(
-            QRegExpValidator(
-                QRegExp(
+            QRegularExpressionValidator(
+                QRegularExpression(
                     "^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$"
                 )
             )
         )
         self.lineEdit_3.setValidator(
-            QRegExpValidator(QRegExp("^[1-9]\\d*$"))
+            QRegularExpressionValidator(QRegularExpression("^[1-9]\\d*$"))
         )  # Only allow whole positive numbers starting from 1.
         self.progressBar.setMaximum(10000)  # setting maximum value for 2 decimal points
         self.progressBar.setFormat("%.02f %%" % 0)  # noqa: UP031
@@ -82,9 +82,9 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     # Get list of user selected files.
     def fileOpen(self):
         file_dialog = QFileDialog()
-        file_dialog.setFileMode(QFileDialog.ExistingFiles)
-        file_dialog.setViewMode(QFileDialog.Detail)
-        file_dialog.exec_()
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFiles)
+        file_dialog.setViewMode(QFileDialog.ViewMode.Detail)
+        file_dialog.exec()
         self.filePathList = file_dialog.selectedFiles()
 
         # Display selected files in GUI.
@@ -205,4 +205,4 @@ if __name__ == "__main__":
     MainWindow = QMainWindow()
     ui = ffmpeg2discord(MainWindow)
     MainWindow.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
