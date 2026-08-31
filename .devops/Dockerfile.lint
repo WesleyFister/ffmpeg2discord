@@ -1,0 +1,13 @@
+FROM python:3.14-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends git libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir "pre-commit==4.6.1"
+
+COPY .pre-commit-config.yaml /tmp/.pre-commit-config.yaml
+
+# Create a dummy git repo so pre-commit doesn't crash
+RUN git init \
+    && pre-commit install-hooks --config /tmp/.pre-commit-config.yaml \
+    && rm -rf .git
