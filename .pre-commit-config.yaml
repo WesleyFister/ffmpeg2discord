@@ -1,0 +1,64 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+        stages: [pre-commit]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        stages: [pre-commit, manual]
+      - id: ruff-format
+        stages: [pre-commit, manual]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.9.4
+    hooks:
+      - id: bandit
+        args: [-c, pyproject.toml, --severity-level, medium]
+        stages: [pre-push, manual]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--severity=info]
+        stages: [pre-commit, manual]
+
+  - repo: https://github.com/rbubley/mirrors-prettier
+    rev: v3.9.6
+    hooks:
+      - id: prettier
+        stages: [pre-commit]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+        stages: [pre-commit, manual]
+      - id: check-case-conflict
+        stages: [pre-commit, manual]
+      - id: check-toml
+        stages: [pre-commit, manual]
+      - id: check-yaml
+        stages: [pre-commit, manual]
+      - id: check-json
+        stages: [pre-commit, manual]
+      - id: check-xml
+        stages: [pre-commit, manual]
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        stages: [pre-commit, manual]
+      - id: check-executables-have-shebangs
+        stages: [pre-commit, manual]
+      - id: check-shebang-scripts-are-executable
+        stages: [pre-commit, manual]
+      - id: trailing-whitespace
+        args: ["--markdown-linebreak-ext=md,mdx,mkd,mdwn,mdtxt,mdtext,markdown"]
+        exclude_types: [diff]
+        stages: [pre-commit, manual]
+      - id: end-of-file-fixer
+        stages: [pre-commit, manual]
