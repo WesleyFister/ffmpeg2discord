@@ -1,12 +1,13 @@
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QRegExp, Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox, QFileDialog
-from PyQt5.QtGui import QRegExpValidator, QPalette, QColor
-from ui import Ui_MainWindow
-from encoder import encode
 import subprocess
-import utils
 import sys
 
+from PyQt5.QtCore import QObject, QRegExp, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QRegExpValidator
+from PyQt5.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
+
+import utils
+from encoder import encode
+from ui import Ui_MainWindow
 
 
 class ffmpeg2discord(Ui_MainWindow, QObject):
@@ -18,24 +19,38 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.mixAudio = False
         self.noAudio = False
         self.normalizezAudio = False
-        self.startTime = "" 
+        self.startTime = ""
         self.endTime = ""
-        
+
         self.encode = encode()
         self.arguments.connect(self.encode.passData)
-        
+
         QApplication.instance().aboutToQuit.connect(self.cancel)
-        
+
         self.window = window
         self.setupUi(self.window)
         self.label.setText("0/0")
         self.label.setVisible(True)
         self.label_2.setVisible(True)
-        self.lineEdit.setValidator(QRegExpValidator(QRegExp("^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$"))) ## Only allow time in HH:MM:SS.ms.
-        self.lineEdit_2.setValidator(QRegExpValidator(QRegExp("^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$")))
-        self.lineEdit_3.setValidator(QRegExpValidator(QRegExp("^[1-9]\\d*$"))) # Only allow whole positive numbers starting from 1.
-        self.progressBar.setMaximum(10000) # setting maximum value for 2 decimal points
-        self.progressBar.setFormat("%.02f %%" % 0)
+        self.lineEdit.setValidator(
+            QRegExpValidator(
+                QRegExp(
+                    "^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$"
+                )
+            )
+        )  ## Only allow time in HH:MM:SS.ms.
+        self.lineEdit_2.setValidator(
+            QRegExpValidator(
+                QRegExp(
+                    "^(?:([0-5]?[0-9]):)?(?:([0-5]?[0-9]):)?([0-5]?[0-9])\\.([0-9]{1,2})$"
+                )
+            )
+        )
+        self.lineEdit_3.setValidator(
+            QRegExpValidator(QRegExp("^[1-9]\\d*$"))
+        )  # Only allow whole positive numbers starting from 1.
+        self.progressBar.setMaximum(10000)  # setting maximum value for 2 decimal points
+        self.progressBar.setFormat("%.02f %%" % 0)  # noqa: UP031
         self.pushButton.clicked.connect(self.fileOpen)
         self.checkBox.stateChanged.connect(self.checkboxToggled)
         self.checkBox_2.stateChanged.connect(self.checkbox_2Toggled)
@@ -46,23 +61,23 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     @pyqtSlot(str)
     def updateLabel(self, data):
         self.label.setText(data)
-        
+
     @pyqtSlot(list)
     def updateLabel_2(self, filePaths):
         displayFilePaths = ""
         for filePath in filePaths:
             displayFilePaths += filePath
-            
+
         self.label_2.setText(displayFilePaths)
 
     @pyqtSlot(str)
     def updateLabel_6(self, data):
         self.label_6.setText(data)
-        
+
     @pyqtSlot(float)
     def updateProgressBar(self, data):
         self.progressBar.setValue(int(data * 100))
-        self.progressBar.setFormat("%.02f %%" % data) 
+        self.progressBar.setFormat("%.02f %%" % data)  # noqa: UP031
 
     # Get list of user selected files.
     def fileOpen(self):
@@ -71,7 +86,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         file_dialog.setViewMode(QFileDialog.Detail)
         file_dialog.exec_()
         self.filePathList = file_dialog.selectedFiles()
-        
+
         # Display selected files in GUI.
         videos = ""
         for video in self.filePathList:
@@ -86,7 +101,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         if self.checkBox.isChecked():
             self.mixAudio = True
             self.checkBox_2.setChecked(False)
-        
+
         else:
             self.mixAudio = False
 
@@ -108,7 +123,7 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
 
         else:
             self.normalizezAudio = False
-    
+
     def cancel(self):
         self.encode.stop()
         self.encode.wait()
@@ -116,17 +131,33 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
     # Check that the program is in the "tools" directory or installed on the system's path.
     def checkForTools(self, tool):
         try:
-            subprocess.check_call(["./tools/" + tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **utils.createNoWindow())
+            subprocess.check_call(
+                ["./tools/" + tool, "--help"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                **utils.createNoWindow(),
+            )
             return "./tools/" + tool
-            
+
         except FileNotFoundError:
             try:
-                subprocess.check_call([tool, "--help"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **utils.createNoWindow())
+                subprocess.check_call(
+                    [tool, "--help"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    **utils.createNoWindow(),
+                )
                 return tool
-                
+
             except FileNotFoundError:
-                QMessageBox.warning(self.window, "Warning", f"\"{tool}\" is not installed or not found in the system's PATH.")
-                raise FileNotFoundError(f"{tool} is not installed or not found in the system's PATH.")
+                QMessageBox.warning(
+                    self.window,
+                    "Warning",
+                    f'"{tool}" is not installed or not found in the system\'s PATH.',
+                )
+                raise FileNotFoundError(
+                    f"{tool} is not installed or not found in the system's PATH."
+                )
 
     def confirm(self):
         ffmpeg = self.checkForTools("ffmpeg")
@@ -155,18 +186,19 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
                 "jpegoptim": jpegoptim,
                 "imageFormat": imageFormat,
                 "audioFormat": audioFormat,
-                "videoFormat": videoFormat
+                "videoFormat": videoFormat,
             }
             self.arguments.emit(args)
-            
+
             # Connect methods for the encode class to use.
             self.encode.updateLabel.connect(self.updateLabel)
             self.encode.updateLabel_2.connect(self.updateLabel_2)
             self.encode.updateLabel_6.connect(self.updateLabel_6)
             self.encode.updateProgressBar.connect(self.updateProgressBar)
-            
+
             # Start the run method in the encode class.
             self.encode.start()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

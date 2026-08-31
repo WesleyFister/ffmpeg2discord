@@ -1,25 +1,24 @@
-from platform import system
-import subprocess
-import mimetypes
 import json
-import sys
+import mimetypes
 import os
-
+import subprocess
+from platform import system
 
 
 # Delete temporary files.
-def cleanUp(logFile, audioPath, audioExists): # Delete temporary files.
+def cleanUp(logFile, audioPath, audioExists):  # Delete temporary files.
     try:
-        if audioExists == True:
+        if audioExists == True:  # noqa: SIM102
             if os.path.exists(audioPath):
                 os.remove(audioPath)
 
         for file in os.listdir("."):
             if os.path.isfile(os.path.join(".", file)) and logFile in file:
                 os.remove(file)
-    
-    except Exception as e:
+
+    except Exception as e:  # noqa: BLE001
         print(f"General error: {e}")
+
 
 # Converts HH:MM:SS.ms time to seconds.
 def convertTimeToSeconds(timeStr):
@@ -31,14 +30,16 @@ def convertTimeToSeconds(timeStr):
 
     return totalSeconds
 
+
 # Passes argument to subprocess calls to not create a terminal window when running a command on Windows systems
 def createNoWindow():
     kwargs = {}
-    
+
     if system() == "Windows":
         kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
-        
+
     return kwargs
+
 
 # Returns MIME type as a / seperated string. I.e. fileType is "video" and fileFormat is "mp4".
 def getMimeType(filePath):
@@ -54,15 +55,16 @@ def getMimeType(filePath):
 
         return fileType, fileFormat
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"General error: {e}")
         return "error", "error"
+
 
 # Using FFprobe to get information on the file return it as a dictionary.
 def getFileInfo(filePath, ffprobe, mixAudio):
     try:
         fileInfo = {}
-        
+
         fileInfo["fileType"], fileInfo["fileFormat"] = getMimeType(filePath)
         if fileInfo["fileType"] == "error" or fileInfo["fileFormat"] == "error":
             return "error"
@@ -74,7 +76,22 @@ def getFileInfo(filePath, ffprobe, mixAudio):
         fileInfo["videoStreams"] = 0
         fileInfo["audioStreams"] = 0
         if fileInfo["fileType"] == "audio" or fileInfo["fileType"] == "video":
-            videoJsonData = subprocess.check_output([ffprobe, "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "v", "-count_packets", filePath], **createNoWindow())
+            videoJsonData = subprocess.check_output(
+                [
+                    ffprobe,
+                    "-v",
+                    "quiet",
+                    "-print_format",
+                    "json",
+                    "-show_format",
+                    "-show_streams",
+                    "-select_streams",
+                    "v",
+                    "-count_packets",
+                    filePath,
+                ],
+                **createNoWindow(),
+            )
             videoJsonData = json.loads(videoJsonData)
 
             # Check for number of video streams.
@@ -83,13 +100,16 @@ def getFileInfo(filePath, ffprobe, mixAudio):
                     fileInfo["videoStreams"] += 1
 
             if fileInfo["videoStreams"] > 0:
-
                 fileInfo["videoLength"] = float(videoJsonData["format"]["duration"])
                 fileInfo["width"] = int(videoJsonData["streams"][0]["width"])
                 fileInfo["height"] = int(videoJsonData["streams"][0]["height"])
-                fileInfo["numberOfVideoPackets"] = int(videoJsonData["streams"][0]["nb_read_packets"])
+                fileInfo["numberOfVideoPackets"] = int(
+                    videoJsonData["streams"][0]["nb_read_packets"]
+                )
 
-                numerator, denominator = map(int, videoJsonData["streams"][0]["avg_frame_rate"].split("/"))
+                numerator, denominator = map(
+                    int, videoJsonData["streams"][0]["avg_frame_rate"].split("/")
+                )
 
                 # Audio with embeded album art will return 1 over 0 and error out.
                 try:
@@ -97,10 +117,25 @@ def getFileInfo(filePath, ffprobe, mixAudio):
 
                 except ZeroDivisionError:
                     framerate = 0
-                    
+
                 fileInfo["framerate"] = framerate
 
-            audioJsonData = subprocess.check_output([ffprobe, "-v", "quiet", "-print_format", "json", "-show_format", "-show_streams", "-select_streams", "a", "-count_packets", filePath], **createNoWindow())
+            audioJsonData = subprocess.check_output(
+                [
+                    ffprobe,
+                    "-v",
+                    "quiet",
+                    "-print_format",
+                    "json",
+                    "-show_format",
+                    "-show_streams",
+                    "-select_streams",
+                    "a",
+                    "-count_packets",
+                    filePath,
+                ],
+                **createNoWindow(),
+            )
             audioJsonData = json.loads(audioJsonData)
 
             # Check for number of audio streams.
@@ -112,7 +147,9 @@ def getFileInfo(filePath, ffprobe, mixAudio):
                 fileInfo["audioChannels"] = audioJsonData["streams"][0]["channels"]
                 fileInfo["audioCodec"] = audioJsonData["streams"][0]["codec_name"]
                 fileInfo["audioDuration"] = float(audioJsonData["format"]["duration"])
-                fileInfo["numberOfAudioPackets"] = int(audioJsonData["streams"][0]["nb_read_packets"])
+                fileInfo["numberOfAudioPackets"] = int(
+                    audioJsonData["streams"][0]["nb_read_packets"]
+                )
 
                 if mixAudio == True:
                     streams = "a"
@@ -120,19 +157,36 @@ def getFileInfo(filePath, ffprobe, mixAudio):
                 else:
                     streams = "a:0"
 
-                audioJsonData = subprocess.check_output([ffprobe, "-v", "quiet", "-print_format", "json", "-select_streams", streams, "-show_entries", "packet=size", filePath], **createNoWindow())
+                audioJsonData = subprocess.check_output(
+                    [
+                        ffprobe,
+                        "-v",
+                        "quiet",
+                        "-print_format",
+                        "json",
+                        "-select_streams",
+                        streams,
+                        "-show_entries",
+                        "packet=size",
+                        filePath,
+                    ],
+                    **createNoWindow(),
+                )
                 audioJsonData = json.loads(audioJsonData)
                 audioSize = 0
-                for audioJsonData in audioJsonData["packets"]:
+                for audioJsonData in audioJsonData["packets"]:  # noqa: B020
                     audioSize += int(audioJsonData["size"])
-                
-                fileInfo["audioBitrate"] = int((audioSize * 8) / fileInfo["audioDuration"])
+
+                fileInfo["audioBitrate"] = int(
+                    (audioSize * 8) / fileInfo["audioDuration"]
+                )
 
         return fileInfo
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"General error: {e}")
         return "error"
+
 
 def calculateTargetFileSize(fileSize, dataUnit):
     # In bits not bytes.
@@ -141,7 +195,7 @@ def calculateTargetFileSize(fileSize, dataUnit):
 
     # If the user inputs nothing.
     if fileSize == "":
-        fileSize = 10 # Discord Default.
+        fileSize = 10  # Discord Default.
 
     else:
         fileSize = int(fileSize)

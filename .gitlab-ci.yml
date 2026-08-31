@@ -1,0 +1,59 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+default:
+  timeout: 15m
+  interruptible: true
+
+variables:
+  GIT_DEPTH: "1"
+
+stages:
+  - build_image
+  - lint
+
+build_image_lint:
+  stage: build_image
+  tags:
+    - shared
+  image: quay.io/buildah/stable:v1.43.1
+  variables:
+    STORAGE_DRIVER: vfs
+    BUILDAH_ISOLATION: chroot
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_SPARSE_CHECKOUT: ".devops"
+  script:
+    - buildah login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+    - buildah bud --storage-driver $STORAGE_DRIVER -f .devops/Dockerfile.lint -t $CI_REGISTRY_IMAGE/lint:latest -t $CI_REGISTRY_IMAGE/lint:$CI_COMMIT_SHORT_SHA .
+
+    - buildah push --storage-driver $STORAGE_DRIVER $CI_REGISTRY_IMAGE/lint:$CI_COMMIT_SHORT_SHA
+    - buildah push --storage-driver $STORAGE_DRIVER $CI_REGISTRY_IMAGE/lint:latest
+  only:
+    changes:
+      - .devops/Dockerfile.lint
+      - .devops/.pre-commit-config.yaml
+
+lint-secrets:
+  stage: lint
+  tags:
+    - shared
+  image:
+    name: zricethezav/gitleaks:v8.30.1
+    entrypoint: [""]
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    - gitleaks git --redact --verbose .
+
+lint:
+  stage: lint
+  tags:
+    - shared
+  image: $CI_REGISTRY_IMAGE/lint:latest
+  script:
+    - pre-commit run --all-files --show-diff-on-failure --color=always
