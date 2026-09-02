@@ -3,7 +3,7 @@ import subprocess
 import sys
 
 from PyQt6 import uic
-from PyQt6.QtCore import QObject, QRegularExpression, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, QRegularExpression, QSettings, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QRegularExpressionValidator
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
@@ -30,9 +30,11 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
         self.arguments.connect(self.encode.passData)
 
         QApplication.instance().aboutToQuit.connect(self.cancel)
+        QApplication.instance().aboutToQuit.connect(self.saveSettings)
 
         self.window = window
         self.setupUi(self.window)
+        self.loadSettings()
         self.label.setText("0/0")
         self.label.setVisible(True)
         self.label_2.setVisible(True)
@@ -162,6 +164,37 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
                 raise FileNotFoundError(
                     f"{tool} is not installed or not found in the system's PATH."
                 )
+
+    def loadSettings(self):
+        settings = QSettings("ffmpeg2discord", "settings")
+        self.checkBox.setChecked(settings.value("mixAudio", False, type=bool))
+        self.checkBox_2.setChecked(settings.value("noAudio", False, type=bool))
+        self.checkBox_3.setChecked(settings.value("normalizeAudio", False, type=bool))
+        self.lineEdit.setText(settings.value("startTime", "", type=str))
+        self.lineEdit_2.setText(settings.value("endTime", "", type=str))
+        self.lineEdit_3.setText(settings.value("fileSize", "", type=str))
+        self.comboBox.setCurrentText(settings.value("dataUnit", "", type=str))
+        self.comboBox_2.setCurrentText(settings.value("imageFormat", "", type=str))
+        self.comboBox_3.setCurrentText(settings.value("audioFormat", "", type=str))
+        self.comboBox_4.setCurrentText(settings.value("videoFormat", "", type=str))
+
+        # Update internal state based on checkboxes
+        self.mixAudio = self.checkBox.isChecked()
+        self.noAudio = self.checkBox_2.isChecked()
+        self.normalizezAudio = self.checkBox_3.isChecked()
+
+    def saveSettings(self):
+        settings = QSettings("ffmpeg2discord", "settings")
+        settings.setValue("mixAudio", self.checkBox.isChecked())
+        settings.setValue("noAudio", self.checkBox_2.isChecked())
+        settings.setValue("normalizeAudio", self.checkBox_3.isChecked())
+        settings.setValue("startTime", self.lineEdit.text())
+        settings.setValue("endTime", self.lineEdit_2.text())
+        settings.setValue("fileSize", self.lineEdit_3.text())
+        settings.setValue("dataUnit", self.comboBox.currentText())
+        settings.setValue("imageFormat", self.comboBox_2.currentText())
+        settings.setValue("audioFormat", self.comboBox_3.currentText())
+        settings.setValue("videoFormat", self.comboBox_4.currentText())
 
     def confirm(self):
         ffmpeg = self.checkForTools("ffmpeg")
