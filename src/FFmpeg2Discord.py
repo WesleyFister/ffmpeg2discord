@@ -1,13 +1,17 @@
+import os
 import subprocess
 import sys
 
+from PyQt6 import uic
 from PyQt6.QtCore import QObject, QRegularExpression, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QRegularExpressionValidator
 from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 
 import utils
 from encoder import encode
-from ui import Ui_MainWindow
+
+UI_PATH = os.path.join(os.path.dirname(__file__), "FFmpeg2DiscordUI.ui")
+Ui_MainWindow, _ = uic.loadUiType(UI_PATH)
 
 
 class ffmpeg2discord(Ui_MainWindow, QObject):
