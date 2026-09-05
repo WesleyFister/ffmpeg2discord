@@ -239,7 +239,14 @@ class encode(QThread):
             audioCodec = "libopus"
 
         elif self.videoFormat == "WEBM (AV1)":
-            codec_flags = ["-cpu-used", "6", "-c:v", "libaom-av1", "-row-mt", "1"]
+            codec_flags = [
+                "-preset",
+                "4",
+                "-c:v",
+                "libsvtav1",
+                "-svtav1-params",
+                "tune=0:scd=1",  # scd=1 does nothing. However, keeping it in if that changes in the future.
+            ]
             container = "webm"
             extentsion = "webm"
             audioCodec = "libopus"
