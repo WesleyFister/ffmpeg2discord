@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# Everything the Appimage ships lives under <Appimage>/usr; make the bundled binaries
+# and libraries win over whatever the host happens to have installed.
+HERE=$(dirname "$(readlink -f "$0")")
+export PATH="$HERE/usr/bin:$PATH"
+export LD_LIBRARY_PATH="$HERE/usr/lib:$LD_LIBRARY_PATH"
+
+# Use the self-contained keyfile GSettings backend (stored under ~/.config/glib-2.0/settings).
+export GSETTINGS_BACKEND=keyfile
+
+# Hand off to the bundled app, replacing this shell.
+exec "$HERE/usr/bin/FFmpeg2Discord" "$@"
