@@ -10,7 +10,10 @@ from PyQt6.QtWidgets import QApplication, QFileDialog, QMainWindow, QMessageBox
 import utils
 from encoder import encode
 
-UI_PATH = os.path.join(os.path.dirname(__file__), "FFmpeg2DiscordUI.ui")
+if hasattr(sys, "_MEIPASS"):
+    UI_PATH = os.path.join(sys._MEIPASS, "FFmpeg2DiscordUI.ui")
+else:
+    UI_PATH = os.path.join(os.path.dirname(__file__), "FFmpeg2DiscordUI.ui")
 Ui_MainWindow, _ = uic.loadUiType(UI_PATH)
 
 
@@ -136,6 +139,19 @@ class ffmpeg2discord(Ui_MainWindow, QObject):
 
     # Check that the program is in the "tools" directory or installed on the system's path.
     def checkForTools(self, tool):
+        # Check PyInstaller internal temporary directory
+        if hasattr(sys, "_MEIPASS"):
+            internal_path = os.path.join(sys._MEIPASS, "tools", tool)
+            if os.path.exists(internal_path):
+                return internal_path
+
+        # Check relative to the script's location (Bundler agnostic: AppImage/Local)
+        # The tools folder is expected to be a sibling to the 'src' folder
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        relative_tools_path = os.path.join(script_dir, "..", "tools", tool)
+        if os.path.exists(relative_tools_path):
+            return os.path.normpath(relative_tools_path)
+
         try:
             subprocess.check_call(
                 ["./tools/" + tool, "--help"],

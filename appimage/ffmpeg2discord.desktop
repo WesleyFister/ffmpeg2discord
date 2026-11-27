@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FFmpeg2Discord
+Comment=Compress videos for Discord
+Exec=FFmpeg2Discord
+Icon=ffmpeg2discord
+Categories=AudioVideo;Video;
+Terminal=false

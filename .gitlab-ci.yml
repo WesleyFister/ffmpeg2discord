@@ -15,6 +15,7 @@ variables:
 stages:
   - build_image
   - lint
+  - package
 
 build_image_lint:
   stage: build_image
@@ -36,7 +37,28 @@ build_image_lint:
   only:
     changes:
       - .devops/Dockerfile.lint
-      - .devops/.pre-commit-config.yaml
+      - .pre-commit-config.yaml
+
+build_image_app:
+  stage: build_image
+  tags:
+    - shared
+  timeout: 45m
+  image: quay.io/buildah/stable:v1.43.1
+  variables:
+    STORAGE_DRIVER: vfs
+    BUILDAH_ISOLATION: chroot
+    GIT_SUBMODULE_STRATEGY: none
+  script:
+    - buildah login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - buildah bud --storage-driver $STORAGE_DRIVER -f .devops/Dockerfile.package -t $CI_REGISTRY_IMAGE/package:latest -t $CI_REGISTRY_IMAGE/package:$CI_COMMIT_SHORT_SHA .
+    - buildah push --storage-driver $STORAGE_DRIVER $CI_REGISTRY_IMAGE/package:$CI_COMMIT_SHORT_SHA
+    - buildah push --storage-driver $STORAGE_DRIVER $CI_REGISTRY_IMAGE/package:latest
+  only:
+    changes:
+      - .devops/Dockerfile.package
+      - scripts/build-deps.sh
+      - requirements.txt
 
 lint-secrets:
   stage: lint
@@ -57,3 +79,15 @@ lint:
   image: $CI_REGISTRY_IMAGE/lint:latest
   script:
     - pre-commit run --all-files --show-diff-on-failure --color=always
+
+package-appimage:
+  stage: package
+  tags:
+    - shared
+  image: $CI_REGISTRY_IMAGE/package:latest
+  script:
+    - chmod +x scripts/build-appimage.sh
+    - ./scripts/build-appimage.sh
+  artifacts:
+    paths:
+      - "*.AppImage"

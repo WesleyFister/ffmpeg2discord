@@ -1,3 +1,11 @@
 venv/
 __pycache__/
 *.log
+
+# Produced by scripts/build-deps.sh and scripts/build-appimage.sh
+tools/
+AppDir/
+build/
+dist/
+*.spec
+*.AppImage
